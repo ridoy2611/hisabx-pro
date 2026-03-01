@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HisabX Pro | Enterprise Finance System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #000000;
+            --bg-secondary: #111111;
+            --accent-gold: #D4AF37;
+            --text-main: #FFFFFF;
+            --text-muted: #A0A0A0;
+            --gold-glow: 0 8px 32px 0 rgba(212, 175, 55, 0.15);
+            --transition: all 0.3s ease;
+            --success: #4CAF50;
+            --danger: #FF5252;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+        body { background: var(--bg-primary); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
+
+        .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 500; margin-bottom: 10px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(212, 175, 55, 0.1); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .online-dot { background-color: var(--success); box-shadow: 0 0 8px var(--success); }
+        .offline-dot { background-color: var(--danger); box-shadow: 0 0 8px var(--danger); }
+
+        /* Sidebar Desktop & Mobile */
+        .sidebar { width: 260px; background: var(--bg-secondary); border-right: 1px solid rgba(212, 175, 55, 0.2); display: flex; flex-direction: column; padding: 20px 0; z-index: 2000; }
+        .brand { font-size: 1.6rem; font-weight: 600; color: var(--accent-gold); text-align: center; margin-bottom: 5px; letter-spacing: 1px; }
+        .nav-link { padding: 12px 25px; color: var(--text-muted); text-decoration: none; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: var(--transition); border-left: 3px solid transparent; }
+        .nav-link:hover, .nav-link.active { background: rgba(212, 175, 55, 0.1); color: var(--accent-gold); border-left-color: var(--accent-gold); }
+
+        .main-content { flex: 1; padding: 25px; overflow-y: auto; background: radial-gradient(circle at top right, #111, #000); padding-bottom: 50px; width: 100%; }
+        .module-view { display: none; animation: slideIn 0.3s ease; }
+        .module-view.active { display: block; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .card { background: rgba(20, 20, 20, 0.8); border: 1px solid rgba(212, 175, 55, 0.2); padding: 15px; border-radius: 12px; box-shadow: var(--gold-glow); }
+        .card-value { font-size: 1.5rem; color: var(--accent-gold); font-weight: 600; margin-top: 5px; }
+
+        .glass-box { background: var(--bg-secondary); padding: 20px; border-radius: 12px; border: 1px solid #222; margin-bottom: 20px; }
+        .input-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 10px; }
+        input, select { background: #000; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 6px; outline: none; width: 100%; }
+        
+        .btn-gold { background: var(--accent-gold); color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-outline { background: transparent; border: 1px solid var(--accent-gold); color: var(--accent-gold); }
+        
+        .table-wrapper { overflow-x: auto; margin-top: 15px; border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; min-width: 500px; }
+        th { text-align: left; padding: 12px; color: var(--accent-gold); border-bottom: 2px solid #222; font-size: 0.9rem; }
+        td { padding: 12px; border-bottom: 1px solid #222; font-size: 0.85rem; }
+        .action-btns { display: flex; gap: 15px; justify-content: flex-end; }
+        .edit-btn { color: var(--accent-gold); cursor: pointer; }
+        .del-btn { color: var(--danger); cursor: pointer; }
+
+        .profile-pic-container { width: 110px; height: 110px; margin: 0 auto 15px; position: relative; }
+        .profile-pic-container img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-gold); }
+        .img-up-label { position: absolute; bottom: 0; right: 0; background: var(--accent-gold); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #000; cursor: pointer; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .confirm-modal { background: var(--bg-secondary); border: 1px solid var(--accent-gold); padding: 25px; border-radius: 15px; text-align: center; width: 90%; max-width: 350px; }
+
+        /* Overlay for mobile sidebar */
+        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; }
+        .sidebar-overlay.active { display: block; }
+
+        @media (max-width: 768px) { 
+            .sidebar { 
+                position: fixed; 
+                left: -280px; 
+                top: 0; 
+                height: 100vh; 
+                transition: left 0.3s ease; 
+                box-shadow: 2px 0 15px rgba(0,0,0,0.8);
+            }
+            .sidebar.active-mobile { left: 0; }
+            .main-content { padding: 15px; padding-bottom: 20px; } 
+            
+            .brand-mobile { 
+                display: flex; 
+                align-items: center; 
+                justify-content: center; 
+                color: var(--accent-gold); 
+                font-weight: 600; 
+                margin-bottom: 15px; 
+                font-size: 1.2rem; 
+                position: relative;
+            }
+            .menu-toggle { 
+                position: absolute; 
+                left: 0; 
+                font-size: 1.4rem; 
+                cursor: pointer; 
+                color: var(--text-main);
+            }
+        }
+        @media (min-width: 769px) { .brand-mobile { display: none; } }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar-overlay" onclick="toggleMenu()"></div>
+
+    <nav class="sidebar">
+        <div class="brand">HISABX PRO</div>
+        <div style="text-align: center; margin-bottom: 15px;">
+            <div class="status-badge">
+                <div class="status-dot online-dot" id="status-dot"></div>
+                <span id="status-text">Checking...</span>
+            </div>
+        </div>
+        <a class="nav-link active" onclick="showModule('dashboard')"><i class="fas fa-home"></i> Dashboard</a>
+        <a class="nav-link" onclick="showModule('personal')"><i class="fas fa-wallet"></i> Personal</a>
+        <a class="nav-link" onclick="showModule('office')"><i class="fas fa-building"></i> Office Ledger</a>
+        <a class="nav-link" onclick="showModule('business')"><i class="fas fa-shop"></i> Business</a>
+        <a class="nav-link" onclick="showModule('debt')"><i class="fas fa-users"></i> Debt</a>
+        <a class="nav-link" onclick="showModule('loans')"><i class="fas fa-university"></i> Loans</a>
+        <a class="nav-link" onclick="showModule('dps')"><i class="fas fa-piggy-bank"></i> DPS</a>
+        <a class="nav-link" onclick="showModule('reports')"><i class="fas fa-file-invoice"></i> Reports</a>
+        <a class="nav-link" onclick="showModule('profile')"><i class="fas fa-user-circle"></i> Profile</a>
+    </nav>
+
+    <main class="main-content">
+        <div class="brand-mobile">
+            <i class="fas fa-bars menu-toggle" onclick="toggleMenu()"></i>
+            HISABX PRO
+        </div>
+        
+        <div id="dashboard" class="module-view active">
+            <h2 id="dash-greeting">Welcome</h2>
+            <p id="dash-subtitle" style="color: var(--text-muted); margin-bottom: 20px;"></p>
+            
+            <h3 style="font-size: 1rem; color: var(--accent-gold); margin-bottom: 10px;">Personal Finance</h3>
+            <div class="summary-grid">
+                <div class="card"><small>Net Balance</small><div class="card-value" id="db-balance">৳0</div></div>
+                <div class="card"><small>Total Income</small><div class="card-value" id="db-income" style="color:var(--success)">৳0</div></div>
+                <div class="card"><small>Total Expense</small><div class="card-value" id="db-expense" style="color:var(--danger)">৳0</div></div>
+            </div>
+
+            <h3 style="font-size: 1rem; color: var(--accent-gold); margin-bottom: 10px; margin-top: 15px;">Office Ledger</h3>
+            <div class="summary-grid">
+                <div class="card"><small>মোট কাজ</small><div class="card-value" id="db-off-total" style="color:var(--accent-gold)">৳0</div></div>
+                <div class="card"><small>মোট অগ্রীম</small><div class="card-value" id="db-off-adv" style="color:var(--success)">৳0</div></div>
+                <div class="card"><small>মোট বাকী</small><div class="card-value" id="db-off-due" style="color:var(--danger)">৳0</div></div>
+            </div>
+        </div>
+
+        <div id="personal" class="module-view">
+            <h2>Personal Finance</h2>
+            <div class="glass-box">
+                <div class="input-row">
+                    <input type="text" id="p-desc" placeholder="Description">
+                    <input type="number" id="p-amt" placeholder="Amount">
+                    <select id="p-type">
+                        <option value="income">Income</option>
+                        <option value="expense">Expense</option>
+                    </select>
+                </div>
+                <input type="hidden" id="p-edit-idx" value="-1">
+                <button class="btn-gold" id="p-btn" onclick="saveData('personal')">Add Record</button>
+            </div>
+            <div class="table-wrapper"><table><thead><tr><th>Details</th><th>Type</th><th>Amount</th><th>Action</th></tr></thead><tbody id="p-table"></tbody></table></div>
+        </div>
+
+        <div id="office" class="module-view">
+            <h2>Office Ledger</h2>
+            <div class="glass-box">
+                <div class="input-row">
+                    <input type="text" id="off-desc" placeholder="কাজের বিবরণ (Purpose)">
+                    <input type="number" id="off-total" placeholder="মোট (Total Amount)">
+                    <input type="number" id="off-adv" placeholder="অগ্রীম (Advance Paid)">
+                </div>
+                <input type="hidden" id="off-edit-idx" value="-1">
+                <button class="btn-gold" id="off-btn" onclick="saveData('office')">Add Record</button>
+            </div>
+            <div class="table-wrapper"><table><thead><tr><th>Purpose</th><th>মোট</th><th>অগ্রীম</th><th>বাকী</th><th>Action</th></tr></thead><tbody id="off-table"></tbody></table></div>
+        </div>
+
+        <div id="business" class="module-view">
+            <h2>Business Sales</h2>
+            <div class="glass-box">
+                <div class="input-row">
+                    <input type="text" id="b-item" placeholder="Item Name">
+                    <input type="number" id="b-qty" placeholder="Qty">
+                    <input type="number" id="b-price" placeholder="Price">
+                </div>
+                <input type="hidden" id="b-edit-idx" value="-1">
+                <button class="btn-gold" id="b-btn" onclick="saveData('business')">Record Sale</button>
+            </div>
+            <div class="table-wrapper"><table><thead><tr><th>Item</th><th>Qty</th><th>Total</th><th>Action</th></tr></thead><tbody id="b-table"></tbody></table></div>
+        </div>
+
+        <div id="debt" class="module-view">
+            <h2>Debt & Debtors</h2>
+            <div class="glass-box">
+                <div class="input-row">
+                    <input type="text" id="d-name" placeholder="Name">
+                    <input type="number" id="d-amt" placeholder="Amount">
+                    <select id="d-type">
+                        <option value="receivable">Receivable</option>
+                        <option value="payable">Payable</option>
+                    </select>
+                </div>
+                <input type="hidden" id="d-edit-idx" value="-1">
+                <button class="btn-gold" id="d-btn" onclick="saveData('debt')">Add Record</button>
+            </div>
+            <div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Amount</th><th>Action</th></tr></thead><tbody id="d-table"></tbody></table></div>
+        </div>
+
+        <div id="loans" class="module-view">
+            <h2>Loans Management</h2>
+            <div class="glass-box">
+                <div class="input-row"><input type="text" id="l-name" placeholder="Bank"><input type="number" id="l-p" placeholder="Principal"><input type="number" id="l-int" placeholder="Interest %"></div>
+                <div class="input-row"><input type="number" id="l-dur" placeholder="Months"><input type="number" id="l-paid" placeholder="Total Paid"></div>
+                <input type="hidden" id="l-edit-idx" value="-1">
+                <button class="btn-gold" id="l-btn" onclick="saveData('loans')">Save Loan</button>
+            </div>
+            <div class="table-wrapper"><table><thead><tr><th>Provider</th><th>Total</th><th>Paid</th><th>Due</th><th>Action</th></tr></thead><tbody id="l-table"></tbody></table></div>
+        </div>
+
+        <div id="dps" class="module-view">
+            <h2>DPS / Savings</h2>
+            <div class="glass-box">
+                <div class="input-row"><input type="text" id="dps-name" placeholder="Bank"><input type="number" id="dps-p" placeholder="Target Principal"><input type="number" id="dps-int" placeholder="Interest %"></div>
+                <div class="input-row"><input type="number" id="dps-dur" placeholder="Months"><input type="number" id="dps-paid" placeholder="Saved"></div>
+                <input type="hidden" id="dps-edit-idx" value="-1">
+                <button class="btn-gold" id="dps-btn" onclick="saveData('dps')">Save DPS</button>
+            </div>
+            <div class="table-wrapper"><table><thead><tr><th>Bank</th><th>Target</th><th>Saved</th><th>Remain</th><th>Action</th></tr></thead><tbody id="dps-table"></tbody></table></div>
+        </div>
+
+        <div id="reports" class="module-view">
+            <h2>Financial Reports</h2>
+            <div class="glass-box">
+                <select id="report-filter" onchange="renderReports()">
+                    <option value="today">Today</option>
+                    <option value="weekly">This Week</option>
+                    <option value="monthly">This Month</option>
+                    <option value="yearly">This Year</option>
+                    <option value="all">All Time</option>
+                </select>
+                <div class="summary-grid" style="margin-top: 20px;">
+                    <div class="card"><small>Report Income</small><div class="card-value" id="rep-income" style="color:var(--success)">৳0</div></div>
+                    <div class="card"><small>Report Expense</small><div class="card-value" id="rep-expense" style="color:var(--danger)">৳0</div></div>
+                </div>
+            </div>
+            <div class="table-wrapper"><table><thead><tr><th>Module & Details</th><th>Type</th><th>Amount</th><th>Action</th></tr></thead><tbody id="report-table"></tbody></table></div>
+        </div>
+
+        <div id="profile" class="module-view">
+            <h2>Profile & Sync</h2>
+            <div class="glass-box" id="auth-box" style="text-align:center; border-color: var(--accent-gold);">
+                <p id="user-status" style="margin-bottom:15px; font-weight: 500;">Login/Register to Sync Online</p>
+                
+                <div id="login-form-container">
+                    <input type="email" id="auth-email" placeholder="Email Address" style="margin-bottom: 10px;">
+                    <input type="password" id="auth-password" placeholder="Password (Min 6 chars)" style="margin-bottom: 15px;">
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn-gold" style="flex: 1; background: var(--success); color: white;" onclick="emailLogin()">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </button>
+                        <button class="btn-gold btn-outline" style="flex: 1;" onclick="emailRegister()">
+                            <i class="fas fa-user-plus"></i> Register
+                        </button>
+                    </div>
+                </div>
+
+                <button class="btn-gold btn-outline" id="logout-btn" style="display:none; margin-top: 10px;" onclick="logout()">Logout</button>
+            </div>
+            
+            <div class="glass-box" style="text-align:center">
+                <div class="profile-pic-container">
+                    <img id="prof-img" src="https://via.placeholder.com/110" alt="Profile">
+                    <label for="img-up" class="img-up-label"><i class="fas fa-camera"></i></label>
+                    <input type="file" id="img-up" style="display:none" onchange="uploadImg(event)">
+                </div>
+                <div class="input-row"><input type="text" id="set-name" placeholder="Full Name"><input type="text" id="set-biz" placeholder="Company Name"></div>
+                <input type="text" id="set-loc" placeholder="Location" style="margin-top:10px;">
+                <button class="btn-gold" onclick="saveProfile()">Update Profile</button>
+            </div>
+            <div class="glass-box">
+                <h3>Backup & Restore</h3>
+                <div class="input-row">
+                    <button class="btn-gold btn-outline" onclick="exportData()"><i class="fas fa-download"></i> Download Backup</button>
+                    <label for="restore-file" class="btn-gold btn-outline" style="cursor:pointer; margin-top:15px; width:100%; display:flex; align-items:center; justify-content:center; gap:8px;"><i class="fas fa-upload"></i> Restore Backup</label>
+                    <input type="file" id="restore-file" style="display:none" accept=".json" onchange="importData(event)">
+                </div>
+                <button class="btn-gold" style="background:var(--danger); color:#fff; margin-top:20px;" onclick="triggerReset()">Reset All Data</button>
+            </div>
+        </div>
+
+        <div id="custom-confirm" class="modal-overlay">
+            <div class="confirm-modal">
+                <h3 id="modal-title">Are you sure?</h3>
+                <div style="display:flex; gap:10px; margin-top:20px;">
+                    <button class="btn-gold" style="background:#333; color:#fff" onclick="closeConfirmModal()">No</button>
+                    <button class="btn-gold" style="background:var(--danger); color:#fff" id="confirm-yes-btn">Yes</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyBrOuU7XEj6iOtN2QhgPnqiEIfyOJ9rINw", authDomain: "pragati-it.firebaseapp.com", projectId: "pragati-it", storageBucket: "pragati-it.firebasestorage.app", messagingSenderId: "862683484950", appId: "1:862683484950:web:f6aa1b26a6634e57b27637" };
+        const app = initializeApp(firebaseConfig); const db = getFirestore(app); const auth = getAuth(app);
+
+        window.syncOnline = async () => { if (auth.currentUser && navigator.onLine) { try { await setDoc(doc(db, "users", auth.currentUser.uid), { hisabData: data }); } catch (e) {} } };
+        
+        // Email Registration
+        window.emailRegister = () => {
+            const email = document.getElementById('auth-email').value;
+            const pass = document.getElementById('auth-password').value;
+            if(!email || !pass) return alert("Please enter email and password!");
+            if(pass.length < 6) return alert("Password must be at least 6 characters!");
+            
+            createUserWithEmailAndPassword(auth, email, pass)
+                .then(() => {
+                    alert("Account created successfully! Your data will now sync online.");
+                    document.getElementById('auth-email').value = "";
+                    document.getElementById('auth-password').value = "";
+                }).catch(e => alert("Registration Error: " + e.message));
+        };
+
+        // Email Login
+        window.emailLogin = () => {
+            const email = document.getElementById('auth-email').value;
+            const pass = document.getElementById('auth-password').value;
+            if(!email || !pass) return alert("Please enter email and password!");
+
+            signInWithEmailAndPassword(auth, email, pass)
+                .then(async (userCred) => {
+                    alert("Login successful!");
+                    const docSnap = await getDoc(doc(db, "users", userCred.user.uid)); 
+                    if (docSnap.exists() && confirm("Cloud data found. Do you want to restore it?")) { 
+                        data = docSnap.data().hisabData; 
+                        localStorage.setItem('hisabx_master_v3', JSON.stringify(data)); 
+                        location.reload(); 
+                    } else {
+                        syncOnline(); 
+                    }
+                    document.getElementById('auth-email').value = "";
+                    document.getElementById('auth-password').value = "";
+                }).catch(e => {
+                    if(e.code === 'auth/invalid-credential') {
+                        alert("Invalid Email or Password!");
+                    } else {
+                        alert("Login Error: " + e.message);
+                    }
+                });
+        };
+
+        window.logout = () => signOut(auth).then(() => location.reload());
+
+        onAuthStateChanged(auth, (user) => { 
+            if (user) { 
+                document.getElementById('user-status').innerText = "Synced as: " + user.email; 
+                document.getElementById('user-status').style.color = "var(--success)";
+                document.getElementById('login-form-container').style.display = 'none'; 
+                document.getElementById('logout-btn').style.display = 'block'; 
+                syncOnline(); 
+            } else { 
+                document.getElementById('user-status').innerText = "Login/Register to Sync Online";
+                document.getElementById('user-status').style.color = "var(--text-main)";
+                document.getElementById('login-form-container').style.display = 'block'; 
+                document.getElementById('logout-btn').style.display = 'none'; 
+            } 
+        });
+
+        function updateNetworkStatus() { const dot = document.getElementById('status-dot'); const text = document.getElementById('status-text'); if (navigator.onLine) { dot.className = "status-dot online-dot"; text.innerText = "Online"; text.style.color = "var(--success)"; if(window.syncOnline) syncOnline(); } else { dot.className = "status-dot offline-dot"; text.innerText = "Offline"; text.style.color = "var(--danger)"; } }
+        window.addEventListener('online', updateNetworkStatus); window.addEventListener('offline', updateNetworkStatus); updateNetworkStatus();
+    </script>
+
+    <script>
+        let data = JSON.parse(localStorage.getItem('hisabx_master_v3')) || { personal: [], office: [], business: [], debt: [], loans: [], dps: [], profile: { name: 'Ridoy Saha', biz: 'Pragati IT Solution', loc: 'Feni', img: '' } };
+        
+        function save() { localStorage.setItem('hisabx_master_v3', JSON.stringify(data)); renderAll(); updateStats(); if (window.syncOnline) window.syncOnline(); }
+        
+        window.toggleMenu = () => {
+            document.querySelector('.sidebar').classList.toggle('active-mobile');
+            document.querySelector('.sidebar-overlay').classList.toggle('active');
+        };
+
+        function showModule(id) { 
+            document.querySelectorAll('.module-view').forEach(m => m.classList.remove('active')); 
+            document.querySelectorAll('.sidebar .nav-link').forEach(l => l.classList.remove('active')); 
+            document.getElementById(id).classList.add('active'); 
+            
+            document.querySelectorAll(`.sidebar [onclick="showModule('${id}')"]`).forEach(el => el.classList.add('active'));
+            if(id === 'reports') renderReports(); 
+            document.querySelector('.main-content').scrollTop = 0;
+
+            if(window.innerWidth <= 768) {
+                document.querySelector('.sidebar').classList.remove('active-mobile');
+                document.querySelector('.sidebar-overlay').classList.remove('active');
+            }
+        }
+
+        function getPrefix(mod) { return { personal:'p', office:'off', business:'b', debt:'d', loans:'l', dps:'dps' }[mod]; }
+
+        function saveData(mod) {
+            const pre = getPrefix(mod); const idx = parseInt(document.getElementById(pre + '-edit-idx').value);
+            let entry = { id: Date.now(), date: new Date().toLocaleString(), timestamp: new Date().getTime() };
+            if(mod === 'personal') { entry.desc = document.getElementById('p-desc').value; entry.amt = parseFloat(document.getElementById('p-amt').value || 0); entry.type = document.getElementById('p-type').value; }
+            else if(mod === 'office') { 
+                entry.desc = document.getElementById('off-desc').value; 
+                entry.total = parseFloat(document.getElementById('off-total').value || 0); 
+                entry.adv = parseFloat(document.getElementById('off-adv').value || 0); 
+            }
+            else if(mod === 'business') { let q = parseFloat(document.getElementById('b-qty').value || 0); let p = parseFloat(document.getElementById('b-price').value || 0); entry.item = document.getElementById('b-item').value; entry.qty = q; entry.total = q * p; }
+            else if(mod === 'debt') { entry.name = document.getElementById('d-name').value; entry.amt = parseFloat(document.getElementById('d-amt').value || 0); entry.type = document.getElementById('d-type').value; }
+            else if(mod === 'loans') { let p = parseFloat(document.getElementById('l-p').value || 0); let i = parseFloat(document.getElementById('l-int').value || 0); let d = parseFloat(document.getElementById('l-dur').value || 1); entry.name = document.getElementById('l-name').value; entry.p = p; entry.total = p + (p * (i/100) * d); entry.paid = parseFloat(document.getElementById('l-paid').value || 0); }
+            else if(mod === 'dps') { let p = parseFloat(document.getElementById('dps-p').value || 0); let i = parseFloat(document.getElementById('dps-int').value || 0); let d = parseFloat(document.getElementById('dps-dur').value || 1); entry.name = document.getElementById('dps-name').value; entry.p = p; entry.total = p + (p * (i/100) * d); entry.paid = parseFloat(document.getElementById('dps-paid').value || 0); }
+            
+            if(idx === -1) data[mod].unshift(entry); else { data[mod][idx] = entry; document.getElementById(pre + '-edit-idx').value = "-1"; document.getElementById(pre + '-btn').innerText = "Add Record"; }
+            document.querySelectorAll(`#${mod} input:not([type='hidden'])`).forEach(i => i.value = ''); save();
+        }
+
+        function editItem(mod, idx) {
+            const item = data[mod][idx]; const pre = getPrefix(mod); showModule(mod);
+            document.getElementById(pre + '-edit-idx').value = idx; document.getElementById(pre + '-btn').innerText = "Update Record";
+            if(mod==='personal'){ document.getElementById('p-desc').value=item.desc; document.getElementById('p-amt').value=item.amt; document.getElementById('p-type').value=item.type; }
+            if(mod==='office'){ document.getElementById('off-desc').value=item.desc; document.getElementById('off-total').value=(item.total || item.amt || 0); document.getElementById('off-adv').value=(item.adv || 0); }
+            if(mod==='business'){ document.getElementById('b-item').value=item.item; document.getElementById('b-qty').value=item.qty; document.getElementById('b-price').value=item.total/item.qty; }
+            if(mod==='debt'){ document.getElementById('d-name').value=item.name; document.getElementById('d-amt').value=item.amt; document.getElementById('d-type').value=item.type; }
+            if(mod==='loans'){ document.getElementById('l-name').value=item.name; document.getElementById('l-p').value=item.p; document.getElementById('l-paid').value=item.paid; }
+            if(mod==='dps'){ document.getElementById('dps-name').value=item.name; document.getElementById('dps-p').value=item.p; document.getElementById('dps-paid').value=item.paid; }
+        }
+
+        let delTask = {};
+        function triggerDelete(mod, idx) { delTask = { mod, idx }; document.getElementById('custom-confirm').classList.add('active'); }
+        function closeConfirmModal() { document.getElementById('custom-confirm').classList.remove('active'); }
+        document.getElementById('confirm-yes-btn').onclick = () => { if(delTask.mod === 'RESET') { localStorage.clear(); location.reload(); } else { data[delTask.mod].splice(delTask.idx, 1); save(); if(document.getElementById('reports').classList.contains('active')) renderReports(); closeConfirmModal(); } };
+        function triggerReset() { delTask = { mod: 'RESET' }; document.getElementById('custom-confirm').classList.add('active'); }
+
+        function renderAll() {
+            const btnHtml = (mod, i) => `<div class="action-btns"><i class="fas fa-edit edit-btn" onclick="editItem('${mod}', ${i})"></i><i class="fas fa-trash del-btn" onclick="triggerDelete('${mod}', ${i})"></i></div>`;
+            document.getElementById('p-table').innerHTML = data.personal.map((it, i) => `<tr><td>${it.desc}<br><small>${it.date}</small></td><td style="color:${it.type==='income'?'#4CAF50':'#FF5252'}">${it.type}</td><td>৳${it.amt}</td><td>${btnHtml('personal', i)}</td></tr>`).join('');
+            
+            // Render Updated Office Table
+            document.getElementById('off-table').innerHTML = data.office.map((it, i) => {
+                let t = it.total || it.amt || 0; let a = it.adv || 0; let d = t - a;
+                return `<tr><td>${it.desc}<br><small>${it.date}</small></td><td>৳${t}</td><td style="color:var(--success)">৳${a}</td><td style="color:var(--danger)">৳${d}</td><td>${btnHtml('office', i)}</td></tr>`;
+            }).join('');
+            
+            document.getElementById('b-table').innerHTML = data.business.map((it, i) => `<tr><td>${it.item}<br><small>${it.date}</small></td><td>${it.qty}</td><td>৳${it.total}</td><td>${btnHtml('business', i)}</td></tr>`).join('');
+            document.getElementById('d-table').innerHTML = data.debt.map((it, i) => `<tr><td>${it.name}<br><small>${it.date}</small></td><td>${it.type}</td><td>৳${it.amt}</td><td>${btnHtml('debt', i)}</td></tr>`).join('');
+            document.getElementById('l-table').innerHTML = data.loans.map((it, i) => `<tr><td>${it.name}<br><small>${it.date}</small></td><td>৳${it.total.toFixed(0)}</td><td>৳${it.paid}</td><td>৳${(it.total-it.paid).toFixed(0)}</td><td>${btnHtml('loans', i)}</td></tr>`).join('');
+            document.getElementById('dps-table').innerHTML = data.dps.map((it, i) => `<tr><td>${it.name}<br><small>${it.date}</small></td><td>৳${it.total.toFixed(0)}</td><td>৳${it.paid}</td><td>৳${(it.p-it.paid).toFixed(0)}</td><td>${btnHtml('dps', i)}</td></tr>`).join('');
+            
+            document.getElementById('dash-greeting').innerText = "Welcome, " + data.profile.name; 
+            document.getElementById('dash-subtitle').innerText = data.profile.loc + " | " + data.profile.biz; 
+            if(data.profile.img) document.getElementById('prof-img').src = data.profile.img;
+            
+            document.getElementById('set-name').value = data.profile.name;
+            document.getElementById('set-biz').value = data.profile.biz;
+            document.getElementById('set-loc').value = data.profile.loc;
+        }
+
+        function renderReports() {
+            const filter = document.getElementById('report-filter').value; const now = new Date(); let reportList = [];
+            ['personal', 'office', 'business', 'debt'].forEach(mod => { data[mod].forEach((item, idx) => { const itemDate = new Date(item.timestamp || item.id); let include = (filter==='all') || (filter==='today' && itemDate.toDateString()===now.toDateString()) || (filter==='monthly' && itemDate.getMonth()===now.getMonth()); if(include) reportList.push({ ...item, module: mod, originalIdx: idx }); }); });
+            let inc = 0, exp = 0;
+            document.getElementById('report-table').innerHTML = reportList.map(it => {
+                let amt = it.amt || it.total || 0; let isInc = (it.type==='income'||it.module==='business'||it.type==='owe_me'||it.type==='receivable'||it.module==='office'); 
+                if(isInc && it.module !== 'office') inc += amt; else if(!isInc) exp += amt;
+                return `<tr><td><strong>${it.module.toUpperCase()}</strong><br>${it.desc||it.item||it.name}<br><small>${it.date}</small></td><td style="color:${isInc?'#4CAF50':'#FF5252'}">${it.type||'Sale'}</td><td>৳${amt}</td><td><div class="action-btns"><i class="fas fa-edit edit-btn" onclick="editItem('${it.module}', ${it.originalIdx})"></i><i class="fas fa-trash del-btn" onclick="triggerDelete('${it.module}', ${it.originalIdx})"></i></div></td></tr>`;
+            }).join('');
+            document.getElementById('rep-income').innerText = '৳' + inc; document.getElementById('rep-expense').innerText = '৳' + exp;
+        }
+
+        function updateStats() {
+            // Personal Stats
+            let inc = data.personal.filter(i => i.type==='income').reduce((a, b) => a + b.amt, 0); 
+            let exp = data.personal.filter(i => i.type==='expense').reduce((a, b) => a + b.amt, 0);
+            document.getElementById('db-income').innerText = '৳'+inc; 
+            document.getElementById('db-expense').innerText = '৳'+exp; 
+            document.getElementById('db-balance').innerText = '৳'+(inc-exp);
+
+            // Updated Office Stats
+            let offTotal = data.office.reduce((a, b) => a + (b.total || b.amt || 0), 0);
+            let offAdv = data.office.reduce((a, b) => a + (b.adv || 0), 0);
+            document.getElementById('db-off-total').innerText = '৳'+offTotal;
+            document.getElementById('db-off-adv').innerText = '৳'+offAdv;
+            document.getElementById('db-off-due').innerText = '৳'+(offTotal - offAdv);
+        }
+
+        function saveProfile() { data.profile.name = document.getElementById('set-name').value; data.profile.biz = document.getElementById('set-biz').value; data.profile.loc = document.getElementById('set-loc').value; save(); alert("Updated!"); }
+        function uploadImg(e) { const reader = new FileReader(); reader.onload = () => { data.profile.img = reader.result; save(); }; reader.readAsDataURL(e.target.files[0]); }
+        function exportData() { const blob = new Blob([JSON.stringify(data)], {type: "application/json"}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = "HisabX_Backup.json"; a.click(); }
+        function importData(e) { const reader = new FileReader(); reader.onload = (ev) => { data = JSON.parse(ev.target.result); save(); location.reload(); }; reader.readAsText(e.target.files[0]); }
+        
+        renderAll(); updateStats();
+    </script>
+</body>
+</html>
