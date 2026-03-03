@@ -44,10 +44,12 @@
 
         .glass-box { background: var(--bg-secondary); padding: 20px; border-radius: 12px; border: 1px solid #222; margin-bottom: 20px; }
         .input-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 10px; }
-        input, select { background: #000; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 6px; outline: none; width: 100%; }
         
-        /* Updated date picker CSS for datetime-local */
-        input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+        /* New Style for separate date and time */
+        .datetime-group { display: flex; gap: 5px; }
+        
+        input, select { background: #000; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 6px; outline: none; width: 100%; font-size: 0.85rem;}
+        input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
         
         .btn-gold { background: var(--accent-gold); color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
         .btn-gold:hover { transform: scale(0.98); opacity: 0.9; }
@@ -150,7 +152,10 @@
             <h2>Personal Finance</h2>
             <div class="glass-box">
                 <div class="input-row">
-                    <input type="datetime-local" id="p-date" title="তারিখ ও সময় সিলেক্ট করুন">
+                    <div class="datetime-group">
+                        <input type="date" id="p-date" title="তারিখ">
+                        <input type="time" id="p-time" title="সময়">
+                    </div>
                     <input type="text" id="p-desc" placeholder="Description">
                     <input type="number" id="p-amt" placeholder="Amount">
                     <select id="p-type">
@@ -168,7 +173,10 @@
             <h2>Office Ledger</h2>
             <div class="glass-box">
                 <div class="input-row">
-                    <input type="datetime-local" id="off-date" title="তারিখ ও সময় সিলেক্ট করুন">
+                    <div class="datetime-group">
+                        <input type="date" id="off-date" title="তারিখ">
+                        <input type="time" id="off-time" title="সময়">
+                    </div>
                     <input type="text" id="off-desc" placeholder="বিবরণ (Purpose)">
                     <input type="number" id="off-total" placeholder="মোট (Total Amount)">
                     <input type="number" id="off-adv" placeholder="অগ্রীম (Advance Paid)">
@@ -183,7 +191,10 @@
             <h2>Business Sales</h2>
             <div class="glass-box">
                 <div class="input-row">
-                    <input type="datetime-local" id="b-date" title="তারিখ ও সময় সিলেক্ট করুন">
+                    <div class="datetime-group">
+                        <input type="date" id="b-date" title="তারিখ">
+                        <input type="time" id="b-time" title="সময়">
+                    </div>
                     <input type="text" id="b-item" placeholder="Item Name">
                     <input type="number" id="b-qty" placeholder="Qty">
                     <input type="number" id="b-price" placeholder="Price">
@@ -198,7 +209,10 @@
             <h2>Debt & Debtors</h2>
             <div class="glass-box">
                 <div class="input-row">
-                    <input type="datetime-local" id="d-date" title="তারিখ ও সময় সিলেক্ট করুন">
+                    <div class="datetime-group">
+                        <input type="date" id="d-date" title="তারিখ">
+                        <input type="time" id="d-time" title="সময়">
+                    </div>
                     <input type="text" id="d-name" placeholder="Name">
                     <input type="number" id="d-amt" placeholder="Amount">
                     <select id="d-type">
@@ -216,7 +230,10 @@
             <h2>Loans Management</h2>
             <div class="glass-box">
                 <div class="input-row">
-                    <input type="datetime-local" id="l-date" title="শুরুর তারিখ ও সময়">
+                    <div class="datetime-group">
+                        <input type="date" id="l-date" title="তারিখ">
+                        <input type="time" id="l-time" title="সময়">
+                    </div>
                     <input type="text" id="l-name" placeholder="Bank or Person">
                     <input type="number" id="l-target" placeholder="Target / Total Loan">
                     <select id="l-cycle">
@@ -239,7 +256,10 @@
             <h2>DPS / Savings</h2>
             <div class="glass-box">
                 <div class="input-row">
-                    <input type="datetime-local" id="dps-date" title="শুরুর তারিখ ও সময়">
+                    <div class="datetime-group">
+                        <input type="date" id="dps-date" title="তারিখ">
+                        <input type="time" id="dps-time" title="সময়">
+                    </div>
                     <input type="text" id="dps-name" placeholder="Bank or Plan Name">
                     <input type="number" id="dps-target" placeholder="Target Saving Amount">
                     <select id="dps-cycle">
@@ -395,19 +415,20 @@
         function saveData(mod) {
             const pre = getPrefix(mod); const idx = parseInt(document.getElementById(pre + '-edit-idx').value);
             
-            // Time & Date Parsing Update
-            let inputDate = document.getElementById(pre + '-date').value;
-            let dt = inputDate ? new Date(inputDate) : new Date();
+            // Separate Date & Time Logic
+            let dVal = document.getElementById(pre + '-date').value;
+            let tVal = document.getElementById(pre + '-time').value;
             
-            // Format for Display: Date + Time
-            let displayDate = dt.toLocaleDateString('en-GB') + ' ' + dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            let now = new Date();
+            // If empty, auto fill current date/time
+            if(!dVal) dVal = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+            if(!tVal) tVal = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+            
+            let dt = new Date(dVal + 'T' + tVal);
+            let displayDate = dt.toLocaleDateString('en-GB') + ' • ' + dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             let finalStamp = dt.getTime();
             
-            // Format for ISO value mapping back to input (YYYY-MM-DDTHH:mm)
-            let tzoffset = (new Date()).getTimezoneOffset() * 60000;
-            let localISOTime = new Date(dt.getTime() - tzoffset).toISOString().slice(0, 16);
-            
-            let entry = { id: Date.now(), date: displayDate, timestamp: finalStamp, isoDate: localISOTime };
+            let entry = { id: Date.now(), date: displayDate, timestamp: finalStamp, isoDate: dVal, isoTime: tVal };
             
             if(mod === 'personal') { 
                 entry.desc = document.getElementById('p-desc').value; entry.amt = parseFloat(document.getElementById('p-amt').value || 0); entry.type = document.getElementById('p-type').value; 
@@ -442,17 +463,25 @@
             }
             
             if(idx === -1) data[mod].unshift(entry); else { data[mod][idx] = entry; document.getElementById(pre + '-edit-idx').value = "-1"; document.getElementById(pre + '-btn').innerText = "Add Record"; }
-            document.querySelectorAll(`#${mod} input:not([type='hidden'])`).forEach(i => i.value = ''); save();
+            
+            // Clear Inputs
+            document.querySelectorAll(`#${mod} input:not([type='hidden'])`).forEach(i => i.value = ''); 
+            save();
         }
 
         function editItem(mod, idx) {
             const item = data[mod][idx]; const pre = getPrefix(mod); showModule(mod);
             document.getElementById(pre + '-edit-idx').value = idx; document.getElementById(pre + '-btn').innerText = "Update Record";
             
-            // Backward compatibility for old dates without time
+            // Set Date and Time fields separately
             if(item.isoDate) {
-                if(item.isoDate.length === 10) document.getElementById(pre + '-date').value = item.isoDate + "T12:00";
-                else document.getElementById(pre + '-date').value = item.isoDate;
+                // Handle older data formats securely
+                document.getElementById(pre + '-date').value = item.isoDate.split('T')[0];
+            }
+            if(item.isoTime) {
+                document.getElementById(pre + '-time').value = item.isoTime;
+            } else if (item.isoDate && item.isoDate.includes('T')) {
+                document.getElementById(pre + '-time').value = item.isoDate.split('T')[1].slice(0,5);
             }
 
             if(mod==='personal'){ document.getElementById('p-desc').value=item.desc; document.getElementById('p-amt').value=item.amt; document.getElementById('p-type').value=item.type; }
@@ -483,7 +512,6 @@
             document.getElementById('b-table').innerHTML = data.business.map((it, i) => `<tr><td>${it.item}<br><small style="color:#A0A0A0">${it.date}</small></td><td>${it.qty}</td><td>৳${it.total}</td><td>${btnHtml('business', i)}</td></tr>`).join('');
             document.getElementById('d-table').innerHTML = data.debt.map((it, i) => `<tr><td>${it.name}<br><small style="color:#A0A0A0">${it.date}</small></td><td><span class="badge ${it.type==='receivable'?'badge-success':'badge-warning'}">${it.type}</span></td><td>৳${it.amt}</td><td>${btnHtml('debt', i)}</td></tr>`).join('');
             
-            // Render Loans & DPS with Progress Bar
             const renderInstTable = (modData, modName) => modData.map((it, i) => {
                 let tgt = it.target || it.total || it.p || 0;
                 let paid = it.totalPaid || it.paid || 0;
@@ -544,7 +572,6 @@
         function saveProfile() { data.profile.name = document.getElementById('set-name').value; data.profile.biz = document.getElementById('set-biz').value; data.profile.loc = document.getElementById('set-loc').value; save(); alert("Updated!"); }
         function uploadImg(e) { const reader = new FileReader(); reader.onload = () => { data.profile.img = reader.result; save(); }; reader.readAsDataURL(e.target.files[0]); }
         
-        // Crash Fixed Backup Download Function
         function exportData() { 
             try {
                 const blob = new Blob([JSON.stringify(data)], {type: "application/json"}); 
@@ -553,10 +580,10 @@
                 a.style.display = 'none';
                 a.href = url; 
                 a.download = "HisabX_Backup.json"; 
-                document.body.appendChild(a); // Append to DOM to prevent crash
+                document.body.appendChild(a);
                 a.click(); 
-                document.body.removeChild(a); // Clean up
-                setTimeout(() => URL.revokeObjectURL(url), 100); // Release memory safely
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 100);
             } catch (e) {
                 alert("Backup failed. Error: " + e.message);
             }
