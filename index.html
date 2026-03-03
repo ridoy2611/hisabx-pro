@@ -2,10 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HisabX Pro | Enterprise Finance System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HisabX Pro | Money Manager Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg-primary: #000000;
@@ -18,55 +19,63 @@
             --success: #4CAF50;
             --danger: #FF5252;
             --warning: #FFC107;
+            --blue: #2196F3;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
         body { background: var(--bg-primary); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
 
+        /* App Lock Screen Styles */
+        #pin-lock-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: var(--bg-primary); z-index: 99999; display: none; flex-direction: column; justify-content: center; align-items: center; }
+        #pin-lock-screen.active { display: flex; }
+        .pin-input { font-size: 2rem; letter-spacing: 15px; text-align: center; width: 200px; padding: 10px; border: 2px solid var(--accent-gold); border-radius: 10px; background: transparent; color: var(--text-main); outline: none; margin-bottom: 20px;}
+        
         .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 500; margin-bottom: 10px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(212, 175, 55, 0.1); }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; }
         .online-dot { background-color: var(--success); box-shadow: 0 0 8px var(--success); }
         .offline-dot { background-color: var(--danger); box-shadow: 0 0 8px var(--danger); }
 
-        .sidebar { width: 260px; background: var(--bg-secondary); border-right: 1px solid rgba(212, 175, 55, 0.2); display: flex; flex-direction: column; padding: 20px 0; z-index: 2000; }
+        .sidebar { width: 260px; background: var(--bg-secondary); border-right: 1px solid rgba(212, 175, 55, 0.2); display: flex; flex-direction: column; padding: 20px 0; z-index: 2000; overflow-y: auto; -webkit-overflow-scrolling: touch;}
         .brand { font-size: 1.6rem; font-weight: 600; color: var(--accent-gold); text-align: center; margin-bottom: 5px; letter-spacing: 1px; }
         .nav-link { padding: 12px 25px; color: var(--text-muted); text-decoration: none; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: var(--transition); border-left: 3px solid transparent; }
         .nav-link:hover, .nav-link.active { background: rgba(212, 175, 55, 0.1); color: var(--accent-gold); border-left-color: var(--accent-gold); }
 
-        .main-content { flex: 1; padding: 25px; overflow-y: auto; background: radial-gradient(circle at top right, #111, #000); padding-bottom: 50px; width: 100%; }
+        .main-content { flex: 1; padding: 25px; overflow-y: auto; background: radial-gradient(circle at top right, #111, #000); padding-bottom: 80px; width: 100%; -webkit-overflow-scrolling: touch; }
         .module-view { display: none; animation: slideIn 0.3s ease; }
         .module-view.active { display: block; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
-        .card { background: rgba(20, 20, 20, 0.8); border: 1px solid rgba(212, 175, 55, 0.2); padding: 15px; border-radius: 12px; box-shadow: var(--gold-glow); }
-        .card-value { font-size: 1.5rem; color: var(--accent-gold); font-weight: 600; margin-top: 5px; }
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .card { background: rgba(20, 20, 20, 0.8); border: 1px solid rgba(212, 175, 55, 0.2); padding: 15px; border-radius: 12px; box-shadow: var(--gold-glow); position: relative;}
+        .card-value { font-size: 1.4rem; color: var(--accent-gold); font-weight: 600; margin-top: 5px; word-wrap: break-word;}
+        
+        .chart-container { position: relative; height: 250px; width: 100%; max-width: 300px; margin: 20px auto; }
 
         .glass-box { background: var(--bg-secondary); padding: 20px; border-radius: 12px; border: 1px solid #222; margin-bottom: 20px; }
         .input-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 10px; }
+        .datetime-group { display: flex; gap: 5px; flex-wrap: nowrap; }
         
-        /* New Style for separate date and time */
-        .datetime-group { display: flex; gap: 5px; }
-        
-        input, select { background: #000; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 6px; outline: none; width: 100%; font-size: 0.85rem;}
+        input, select { background: #000; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 6px; outline: none; width: 100%; font-size: 16px; }
         input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
         
-        .btn-gold { background: var(--accent-gold); color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
+        .btn-gold { background: var(--accent-gold); color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; font-size: 16px; }
         .btn-gold:hover { transform: scale(0.98); opacity: 0.9; }
         .btn-outline { background: transparent; border: 1px solid var(--accent-gold); color: var(--accent-gold); }
         
-        .table-wrapper { overflow-x: auto; margin-top: 15px; border-radius: 8px; }
-        table { width: 100%; border-collapse: collapse; min-width: 600px; }
-        th { text-align: left; padding: 12px; color: var(--accent-gold); border-bottom: 2px solid #222; font-size: 0.9rem; }
+        .table-wrapper { overflow-x: auto; margin-top: 15px; border-radius: 8px; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; min-width: 550px; }
+        th { text-align: left; padding: 12px; color: var(--accent-gold); border-bottom: 2px solid #222; font-size: 0.9rem; white-space: nowrap; }
         td { padding: 12px; border-bottom: 1px solid #222; font-size: 0.85rem; vertical-align: middle; }
         .action-btns { display: flex; gap: 15px; justify-content: flex-end; }
-        .edit-btn { color: var(--accent-gold); cursor: pointer; }
-        .del-btn { color: var(--danger); cursor: pointer; }
+        .edit-btn { color: var(--accent-gold); cursor: pointer; font-size: 1.1rem;}
+        .del-btn { color: var(--danger); cursor: pointer; font-size: 1.1rem;}
 
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; display: inline-block; margin-top: 4px; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; display: inline-block; margin-top: 4px; white-space: nowrap; }
         .badge-success { background: rgba(76, 175, 80, 0.15); color: var(--success); border: 1px solid var(--success); }
         .badge-warning { background: rgba(255, 193, 7, 0.15); color: var(--warning); border: 1px solid var(--warning); }
-        .prog-bg { background: #333; height: 6px; border-radius: 3px; width: 80px; display: inline-block; overflow: hidden; vertical-align: middle; margin-right: 8px; margin-top: 5px; }
+        .badge-info { background: rgba(33, 150, 243, 0.15); color: var(--blue); border: 1px solid var(--blue); }
+        
+        .prog-bg { background: #333; height: 6px; border-radius: 3px; width: 100%; display: inline-block; overflow: hidden; vertical-align: middle; margin-top: 5px; }
         .prog-fill { background: var(--accent-gold); height: 100%; transition: width 0.3s; }
 
         .profile-pic-container { width: 110px; height: 110px; margin: 0 auto 15px; position: relative; }
@@ -75,32 +84,31 @@
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center; }
         .modal-overlay.active { display: flex; }
-        .confirm-modal { background: var(--bg-secondary); border: 1px solid var(--accent-gold); padding: 25px; border-radius: 15px; text-align: center; width: 90%; max-width: 350px; }
+        .confirm-modal { background: var(--bg-secondary); border: 1px solid var(--accent-gold); padding: 25px; border-radius: 15px; text-align: center; width: 90%; max-width: 320px; }
 
         .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; }
         .sidebar-overlay.active { display: block; }
 
-        @media print {
-            .sidebar, .glass-box, .btn-gold, .action-btns, .sidebar-overlay, .brand-mobile { display: none !important; }
-            .main-content { background: #fff; padding: 0; margin: 0; }
-            * { color: #000 !important; }
-            table, th, td { border: 1px solid #ddd; }
-            th { background-color: #f2f2f2; color: #000 !important; }
-            .badge-success { color: green !important; border-color: green; }
-            .badge-warning { color: orange !important; border-color: orange; }
-        }
-
         @media (max-width: 768px) { 
             .sidebar { position: fixed; left: -280px; top: 0; height: 100vh; transition: left 0.3s ease; box-shadow: 2px 0 15px rgba(0,0,0,0.8); }
             .sidebar.active-mobile { left: 0; }
-            .main-content { padding: 15px; padding-bottom: 20px; } 
+            .main-content { padding: 15px; padding-bottom: 30px; } 
             .brand-mobile { display: flex; align-items: center; justify-content: center; color: var(--accent-gold); font-weight: 600; margin-bottom: 15px; font-size: 1.2rem; position: relative; }
-            .menu-toggle { position: absolute; left: 0; font-size: 1.4rem; cursor: pointer; color: var(--text-main); }
+            .menu-toggle { position: absolute; left: 0; font-size: 1.4rem; cursor: pointer; color: var(--text-main); padding: 5px;}
+            .datetime-group { flex-direction: column; }
         }
         @media (min-width: 769px) { .brand-mobile { display: none; } }
     </style>
 </head>
 <body>
+
+    <div id="pin-lock-screen">
+        <i class="fas fa-lock" style="font-size: 3rem; color: var(--accent-gold); margin-bottom: 15px;"></i>
+        <h2 style="color:var(--accent-gold); margin-bottom:20px;">Enter App PIN</h2>
+        <input type="password" id="login-pin-input" class="pin-input" inputmode="numeric" maxlength="4" placeholder="••••">
+        <button class="btn-gold" onclick="verifyPin()" style="width:200px;">Unlock</button>
+        <p id="pin-error" style="color:var(--danger); margin-top:10px; display:none;">Incorrect PIN!</p>
+    </div>
 
     <div class="sidebar-overlay" onclick="toggleMenu()"></div>
 
@@ -113,14 +121,15 @@
             </div>
         </div>
         <a class="nav-link active" onclick="showModule('dashboard')"><i class="fas fa-home"></i> Dashboard</a>
-        <a class="nav-link" onclick="showModule('personal')"><i class="fas fa-wallet"></i> Personal</a>
+        <a class="nav-link" onclick="showModule('accounts')"><i class="fas fa-wallet"></i> Accounts & Budget</a>
+        <a class="nav-link" onclick="showModule('transactions')"><i class="fas fa-exchange-alt"></i> Transactions</a>
         <a class="nav-link" onclick="showModule('office')"><i class="fas fa-building"></i> Office Ledger</a>
         <a class="nav-link" onclick="showModule('business')"><i class="fas fa-shop"></i> Business</a>
         <a class="nav-link" onclick="showModule('debt')"><i class="fas fa-users"></i> Debt</a>
         <a class="nav-link" onclick="showModule('loans')"><i class="fas fa-university"></i> Loans</a>
         <a class="nav-link" onclick="showModule('dps')"><i class="fas fa-piggy-bank"></i> DPS</a>
         <a class="nav-link" onclick="showModule('reports')"><i class="fas fa-file-invoice"></i> Reports</a>
-        <a class="nav-link" onclick="showModule('profile')"><i class="fas fa-user-circle"></i> Profile</a>
+        <a class="nav-link" onclick="showModule('profile')"><i class="fas fa-user-circle"></i> Profile & Settings</a>
     </nav>
 
     <main class="main-content">
@@ -133,50 +142,89 @@
             <h2 id="dash-greeting">Welcome</h2>
             <p id="dash-subtitle" style="color: var(--text-muted); margin-bottom: 20px;"></p>
             
-            <h3 style="font-size: 1rem; color: var(--accent-gold); margin-bottom: 10px;">Personal Finance</h3>
-            <div class="summary-grid">
-                <div class="card"><small>Net Balance</small><div class="card-value" id="db-balance">৳0</div></div>
-                <div class="card"><small>Total Income</small><div class="card-value" id="db-income" style="color:var(--success)">৳0</div></div>
-                <div class="card"><small>Total Expense</small><div class="card-value" id="db-expense" style="color:var(--danger)">৳0</div></div>
+            <h3 style="font-size: 1rem; color: var(--accent-gold); margin-bottom: 10px;">Total Assets (অ্যাকাউন্ট ব্যালেন্স)</h3>
+            <div class="summary-grid" id="acc-summary-cards">
+                </div>
+
+            <div class="glass-box" style="margin-top: 15px;">
+                <h3 style="font-size: 1rem; color: var(--accent-gold); text-align:center;">Expense Visualizer (Current Month)</h3>
+                <div class="chart-container">
+                    <canvas id="expenseChart"></canvas>
+                </div>
             </div>
 
-            <h3 style="font-size: 1rem; color: var(--accent-gold); margin-bottom: 10px; margin-top: 15px;">Office Ledger</h3>
-            <div class="summary-grid">
-                <div class="card"><small>মোট খরচ</small><div class="card-value" id="db-off-total" style="color:var(--accent-gold)">৳0</div></div>
-                <div class="card"><small>মোট অগ্রীম</small><div class="card-value" id="db-off-adv" style="color:var(--success)">৳0</div></div>
-                <div class="card"><small>মোট বাকী</small><div class="card-value" id="db-off-due" style="color:var(--danger)">৳0</div></div>
+            <div class="glass-box" style="margin-top: 15px;">
+                <h3 style="font-size: 1rem; color: var(--accent-gold); margin-bottom: 10px;" id="budget-title-display">Budget Status</h3>
+                <p style="font-size:0.85rem; display:flex; justify-content:space-between;">
+                    <span id="budget-spent-text">Spent: ৳0</span>
+                    <span id="budget-total-text" style="color:var(--text-muted)">Budget: ৳0</span>
+                </p>
+                <div class="prog-bg" style="height:12px; border-radius:6px; background:#222; margin-top:8px;">
+                    <div id="budget-prog-fill" class="prog-fill" style="width:0%; border-radius:6px;"></div>
+                </div>
             </div>
         </div>
 
-        <div id="personal" class="module-view">
-            <h2>Personal Finance</h2>
+        <div id="accounts" class="module-view">
+            <h2>Accounts & Budget</h2>
+            
+            <div class="glass-box">
+                <h3 style="font-size: 1rem; color: var(--accent-gold); margin-bottom: 10px;">Set Your Budget</h3>
+                <div class="input-row">
+                    <select id="budget-type">
+                        <option value="Daily">Daily Budget</option>
+                        <option value="Weekly">Weekly Budget</option>
+                        <option value="Monthly" selected>Monthly Budget</option>
+                        <option value="Yearly">Yearly Budget</option>
+                    </select>
+                    <input type="number" id="budget-amt" placeholder="Budget Amount">
+                </div>
+                <button class="btn-gold" onclick="saveBudget()">Save Budget</button>
+            </div>
+
+            <div class="glass-box">
+                <h3 style="font-size: 1rem; color: var(--accent-gold); margin-bottom: 10px;">Add New Account</h3>
+                <div class="input-row">
+                    <input type="text" id="acc-name" placeholder="Name (e.g. Bkash)">
+                    <input type="number" id="acc-bal" placeholder="Initial Balance">
+                </div>
+                <button class="btn-gold" onclick="saveAccount()">Add Account</button>
+            </div>
+            <div class="table-wrapper"><table><thead><tr><th>Account Name</th><th>Current Balance</th><th>Action</th></tr></thead><tbody id="acc-table"></tbody></table></div>
+        </div>
+
+        <div id="transactions" class="module-view">
+            <h2>Transactions</h2>
             <div class="glass-box">
                 <div class="input-row">
                     <div class="datetime-group">
-                        <input type="date" id="p-date" title="তারিখ">
-                        <input type="time" id="p-time" title="সময়">
+                        <input type="date" id="t-date" title="তারিখ">
+                        <input type="time" id="t-time" title="সময়">
                     </div>
-                    <input type="text" id="p-desc" placeholder="Description">
-                    <input type="number" id="p-amt" placeholder="Amount">
-                    <select id="p-type">
-                        <option value="income">Income</option>
-                        <option value="expense">Expense</option>
+                    <select id="t-type" onchange="updateCategories()">
+                        <option value="expense">Expense (-)</option>
+                        <option value="income">Income (+)</option>
                     </select>
                 </div>
-                <input type="hidden" id="p-edit-idx" value="-1">
-                <button class="btn-gold" id="p-btn" onclick="saveData('personal')">Add Record</button>
+                <div class="input-row">
+                    <select id="t-account" title="Select Account"></select>
+                    <select id="t-category" title="Select Category"></select>
+                </div>
+                <div class="input-row">
+                    <input type="number" id="t-amt" placeholder="Amount">
+                    <input type="text" id="t-desc" placeholder="Note / Description">
+                </div>
+                <input type="hidden" id="t-edit-idx" value="-1">
+                <button class="btn-gold" id="t-btn" onclick="saveTransaction()">Save Transaction</button>
             </div>
-            <div class="table-wrapper"><table><thead><tr><th>Details & Date</th><th>Type</th><th>Amount</th><th>Action</th></tr></thead><tbody id="p-table"></tbody></table></div>
+            <div class="table-wrapper"><table><thead><tr><th>Date & Acc</th><th>Category & Note</th><th>Amount</th><th>Action</th></tr></thead><tbody id="t-table"></tbody></table></div>
         </div>
 
         <div id="office" class="module-view">
             <h2>Office Ledger</h2>
             <div class="glass-box">
                 <div class="input-row">
-                    <div class="datetime-group">
-                        <input type="date" id="off-date" title="তারিখ">
-                        <input type="time" id="off-time" title="সময়">
-                    </div>
+                    <div class="datetime-group"><input type="date" id="off-date"><input type="time" id="off-time"></div>
                     <input type="text" id="off-desc" placeholder="বিবরণ (Purpose)">
                     <input type="number" id="off-total" placeholder="মোট (Total Amount)">
                     <input type="number" id="off-adv" placeholder="অগ্রীম (Advance Paid)">
@@ -191,10 +239,7 @@
             <h2>Business Sales</h2>
             <div class="glass-box">
                 <div class="input-row">
-                    <div class="datetime-group">
-                        <input type="date" id="b-date" title="তারিখ">
-                        <input type="time" id="b-time" title="সময়">
-                    </div>
+                    <div class="datetime-group"><input type="date" id="b-date"><input type="time" id="b-time"></div>
                     <input type="text" id="b-item" placeholder="Item Name">
                     <input type="number" id="b-qty" placeholder="Qty">
                     <input type="number" id="b-price" placeholder="Price">
@@ -209,16 +254,10 @@
             <h2>Debt & Debtors</h2>
             <div class="glass-box">
                 <div class="input-row">
-                    <div class="datetime-group">
-                        <input type="date" id="d-date" title="তারিখ">
-                        <input type="time" id="d-time" title="সময়">
-                    </div>
+                    <div class="datetime-group"><input type="date" id="d-date"><input type="time" id="d-time"></div>
                     <input type="text" id="d-name" placeholder="Name">
                     <input type="number" id="d-amt" placeholder="Amount">
-                    <select id="d-type">
-                        <option value="receivable">Receivable</option>
-                        <option value="payable">Payable</option>
-                    </select>
+                    <select id="d-type"><option value="receivable">Receivable</option><option value="payable">Payable</option></select>
                 </div>
                 <input type="hidden" id="d-edit-idx" value="-1">
                 <button class="btn-gold" id="d-btn" onclick="saveData('debt')">Add Record</button>
@@ -230,17 +269,10 @@
             <h2>Loans Management</h2>
             <div class="glass-box">
                 <div class="input-row">
-                    <div class="datetime-group">
-                        <input type="date" id="l-date" title="তারিখ">
-                        <input type="time" id="l-time" title="সময়">
-                    </div>
+                    <div class="datetime-group"><input type="date" id="l-date"><input type="time" id="l-time"></div>
                     <input type="text" id="l-name" placeholder="Bank or Person">
                     <input type="number" id="l-target" placeholder="Target / Total Loan">
-                    <select id="l-cycle">
-                        <option value="Monthly">Monthly</option>
-                        <option value="Weekly">Weekly</option>
-                        <option value="Yearly">Yearly</option>
-                    </select>
+                    <select id="l-cycle"><option value="Monthly">Monthly</option><option value="Weekly">Weekly</option><option value="Yearly">Yearly</option></select>
                 </div>
                 <div class="input-row">
                     <input type="number" id="l-inst-amt" placeholder="Installment Amount">
@@ -256,17 +288,10 @@
             <h2>DPS / Savings</h2>
             <div class="glass-box">
                 <div class="input-row">
-                    <div class="datetime-group">
-                        <input type="date" id="dps-date" title="তারিখ">
-                        <input type="time" id="dps-time" title="সময়">
-                    </div>
+                    <div class="datetime-group"><input type="date" id="dps-date"><input type="time" id="dps-time"></div>
                     <input type="text" id="dps-name" placeholder="Bank or Plan Name">
                     <input type="number" id="dps-target" placeholder="Target Saving Amount">
-                    <select id="dps-cycle">
-                        <option value="Monthly">Monthly</option>
-                        <option value="Weekly">Weekly</option>
-                        <option value="Yearly">Yearly</option>
-                    </select>
+                    <select id="dps-cycle"><option value="Monthly">Monthly</option><option value="Weekly">Weekly</option><option value="Yearly">Yearly</option></select>
                 </div>
                 <div class="input-row">
                     <input type="number" id="dps-inst-amt" placeholder="Installment Amount">
@@ -281,29 +306,34 @@
         <div id="reports" class="module-view">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                 <h2>Financial Reports</h2>
-                <button class="btn-gold btn-outline" style="width:auto; margin:0;" onclick="window.print()"><i class="fas fa-print"></i> Print / Save PDF</button>
+                <button class="btn-gold btn-outline" style="width:auto; margin:0;" onclick="window.print()"><i class="fas fa-print"></i> Print PDF</button>
             </div>
-            <div class="glass-box" style="margin-top: 15px;">
-                <div class="input-row">
-                    <select id="report-filter" onchange="renderReports()">
-                        <option value="today">Today</option>
-                        <option value="weekly">This Week</option>
-                        <option value="monthly">This Month</option>
-                        <option value="yearly">This Year</option>
-                        <option value="all">All Time</option>
-                    </select>
-                    <input type="text" id="report-search" placeholder="Search by name, desc..." onkeyup="renderReports()">
-                </div>
-                <div class="summary-grid" style="margin-top: 20px;">
-                    <div class="card"><small>Report Income</small><div class="card-value" id="rep-income" style="color:var(--success)">৳0</div></div>
-                    <div class="card"><small>Report Expense</small><div class="card-value" id="rep-expense" style="color:var(--danger)">৳0</div></div>
-                </div>
-            </div>
-            <div class="table-wrapper"><table><thead><tr><th>Module & Details</th><th>Type</th><th>Amount</th><th>Action</th></tr></thead><tbody id="report-table"></tbody></table></div>
+            <div class="table-wrapper"><table><thead><tr><th>Module & Details</th><th>Type/Category</th><th>Amount</th></tr></thead><tbody id="report-table"></tbody></table></div>
         </div>
 
         <div id="profile" class="module-view">
-            <h2>Profile & Sync</h2>
+            <h2>Profile & Settings</h2>
+            
+            <div class="glass-box" style="text-align:center">
+                <div class="profile-pic-container">
+                    <img id="prof-img" src="https://via.placeholder.com/110" alt="Profile">
+                    <label for="img-up" class="img-up-label"><i class="fas fa-camera"></i></label>
+                    <input type="file" id="img-up" style="display:none" onchange="uploadImg(event)">
+                </div>
+                <div class="input-row"><input type="text" id="set-name" placeholder="Full Name"><input type="text" id="set-biz" placeholder="Company Name"></div>
+                <input type="text" id="set-loc" placeholder="Location" style="margin-top:10px;">
+                <button class="btn-gold" onclick="saveProfile()">Update Profile</button>
+            </div>
+
+            <div class="glass-box" style="border-color: var(--warning);">
+                <h3><i class="fas fa-lock"></i> App Lock (PIN)</h3>
+                <div class="input-row">
+                    <input type="password" id="new-pin-input" placeholder="Enter 4-digit PIN" inputmode="numeric" maxlength="4">
+                    <button class="btn-gold" style="margin-top:0;" onclick="managePin('set')">Set / Change</button>
+                </div>
+                <button class="btn-gold btn-outline" style="color:var(--danger); border-color:var(--danger); margin-top:10px;" onclick="managePin('remove')">Remove PIN</button>
+            </div>
+
             <div class="glass-box" id="auth-box" style="text-align:center; border-color: var(--accent-gold);">
                 <p id="user-status" style="margin-bottom:15px; font-weight: 500;">Login/Register to Sync Online</p>
                 <div id="login-form-container">
@@ -317,23 +347,15 @@
                 <button class="btn-gold btn-outline" id="logout-btn" style="display:none; margin-top: 10px;" onclick="logout()">Logout</button>
             </div>
             
-            <div class="glass-box" style="text-align:center">
-                <div class="profile-pic-container">
-                    <img id="prof-img" src="https://via.placeholder.com/110" alt="Profile">
-                    <label for="img-up" class="img-up-label"><i class="fas fa-camera"></i></label>
-                    <input type="file" id="img-up" style="display:none" onchange="uploadImg(event)">
-                </div>
-                <div class="input-row"><input type="text" id="set-name" placeholder="Full Name"><input type="text" id="set-biz" placeholder="Company Name"></div>
-                <input type="text" id="set-loc" placeholder="Location" style="margin-top:10px;">
-                <button class="btn-gold" onclick="saveProfile()">Update Profile</button>
-            </div>
             <div class="glass-box">
-                <h3>Backup & Restore</h3>
+                <h3><i class="fas fa-cloud-download-alt"></i> Backup & Restore</h3>
+                <p style="font-size: 0.8rem; color:var(--text-muted); margin-bottom:15px;">Use "Save to Google Drive" to securely upload your backup file directly to your Drive via mobile share.</p>
                 <div class="input-row">
-                    <button class="btn-gold btn-outline" onclick="exportData()"><i class="fas fa-download"></i> Download Backup</button>
-                    <label for="restore-file" class="btn-gold btn-outline" style="cursor:pointer; margin-top:15px; width:100%; display:flex; align-items:center; justify-content:center; gap:8px;"><i class="fas fa-upload"></i> Restore Backup</label>
+                    <button class="btn-gold" style="background:#2196F3; color:#fff; border:none;" onclick="backupToDrive()"><i class="fab fa-google-drive"></i> Save to Google Drive</button>
+                    <label for="restore-file" class="btn-gold btn-outline" style="cursor:pointer; margin-top:0; width:100%; display:flex; align-items:center; justify-content:center; gap:8px;"><i class="fas fa-upload"></i> Restore Backup</label>
                     <input type="file" id="restore-file" style="display:none" accept=".json" onchange="importData(event)">
                 </div>
+                <button class="btn-gold" onclick="exportData()"><i class="fas fa-download"></i> Standard Local Download</button>
                 <button class="btn-gold" style="background:var(--danger); color:#fff; margin-top:20px;" onclick="triggerReset()">Reset All Data</button>
             </div>
         </div>
@@ -358,45 +380,71 @@
         const app = initializeApp(firebaseConfig); const db = getFirestore(app); const auth = getAuth(app);
 
         window.syncOnline = async () => { if (auth.currentUser && navigator.onLine) { try { await setDoc(doc(db, "users", auth.currentUser.uid), { hisabData: data }); } catch (e) {} } };
-        
-        window.emailRegister = () => {
-            const email = document.getElementById('auth-email').value; const pass = document.getElementById('auth-password').value;
-            if(!email || !pass) return alert("Please enter email and password!");
-            if(pass.length < 6) return alert("Password must be at least 6 characters!");
-            createUserWithEmailAndPassword(auth, email, pass).then(() => { alert("Account created successfully!"); document.getElementById('auth-email').value = ""; document.getElementById('auth-password').value = ""; }).catch(e => alert("Registration Error: " + e.message));
-        };
-
-        window.emailLogin = () => {
-            const email = document.getElementById('auth-email').value; const pass = document.getElementById('auth-password').value;
-            if(!email || !pass) return alert("Please enter email and password!");
-            signInWithEmailAndPassword(auth, email, pass).then(async (userCred) => {
-                alert("Login successful!");
-                const docSnap = await getDoc(doc(db, "users", userCred.user.uid)); 
-                if (docSnap.exists() && confirm("Cloud data found. Restore?")) { data = docSnap.data().hisabData; save(); location.reload(); } else syncOnline();
-                document.getElementById('auth-email').value = ""; document.getElementById('auth-password').value = "";
-            }).catch(e => alert("Login Error: " + e.message));
-        };
-
+        window.emailRegister = () => { /* Add Registration Alert Logic if needed */ };
+        window.emailLogin = () => { /* Add Login Alert Logic if needed */ };
         window.logout = () => signOut(auth).then(() => location.reload());
-
+        
         onAuthStateChanged(auth, (user) => { 
-            if (user) { 
-                document.getElementById('user-status').innerText = "Synced as: " + user.email; document.getElementById('user-status').style.color = "var(--success)";
-                document.getElementById('login-form-container').style.display = 'none'; document.getElementById('logout-btn').style.display = 'block'; syncOnline(); 
-            } else { 
-                document.getElementById('user-status').innerText = "Login/Register to Sync Online"; document.getElementById('user-status').style.color = "var(--text-main)";
-                document.getElementById('login-form-container').style.display = 'block'; document.getElementById('logout-btn').style.display = 'none'; 
-            } 
+            if (user) { document.getElementById('user-status').innerText = "Synced as: " + user.email; document.getElementById('user-status').style.color = "var(--success)"; document.getElementById('login-form-container').style.display = 'none'; document.getElementById('logout-btn').style.display = 'block'; syncOnline(); } 
+            else { document.getElementById('login-form-container').style.display = 'block'; document.getElementById('logout-btn').style.display = 'none'; } 
         });
-
-        function updateNetworkStatus() { const dot = document.getElementById('status-dot'); const text = document.getElementById('status-text'); if (navigator.onLine) { dot.className = "status-dot online-dot"; text.innerText = "Online"; text.style.color = "var(--success)"; if(window.syncOnline) syncOnline(); } else { dot.className = "status-dot offline-dot"; text.innerText = "Offline"; text.style.color = "var(--danger)"; } }
-        window.addEventListener('online', updateNetworkStatus); window.addEventListener('offline', updateNetworkStatus); updateNetworkStatus();
     </script>
 
     <script>
-        let data = JSON.parse(localStorage.getItem('hisabx_master_v3')) || { personal: [], office: [], business: [], debt: [], loans: [], dps: [], profile: { name: 'Ridoy Saha', biz: 'Pragati IT Solution', loc: 'Feni', img: '' } };
+        // Data Structure Initialization
+        let data = JSON.parse(localStorage.getItem('hisabx_mm_v4'));
         
-        function save() { localStorage.setItem('hisabx_master_v3', JSON.stringify(data)); renderAll(); updateStats(); if (window.syncOnline) window.syncOnline(); }
+        if (!data || !data.transactions) {
+            data = { 
+                pin: null,
+                budget: { amount: 0, type: 'Monthly' },
+                accounts: [{id: 1, name: 'Cash', balance: 0}, {id: 2, name: 'Bkash', balance: 0}],
+                categories: { 
+                    income: ['Salary', 'Business', 'Freelance', 'Gift', 'Other'], 
+                    expense: ['Food', 'Transport', 'Shopping', 'Bills', 'Rent', 'Health', 'Other'] 
+                },
+                transactions: [], office: [], business: [], debt: [], loans: [], dps: [], 
+                profile: { name: 'Ridoy Saha', biz: 'Pragati IT', loc: 'Feni', img: '' } 
+            };
+        } else {
+            // Data migration for old budget format to new object format
+            if(typeof data.budget === 'number') data.budget = { amount: data.budget, type: 'Monthly' };
+            if(!data.pin) data.pin = null;
+        }
+        
+        let expenseChartInstance = null;
+
+        // --- PIN LOCK LOGIC ---
+        function initApp() {
+            if(data.pin) {
+                document.getElementById('pin-lock-screen').classList.add('active');
+            } else {
+                renderAll(); updateStats();
+            }
+        }
+
+        function verifyPin() {
+            let inputPin = document.getElementById('login-pin-input').value;
+            if(inputPin === data.pin) {
+                document.getElementById('pin-lock-screen').classList.remove('active');
+                renderAll(); updateStats();
+            } else {
+                document.getElementById('pin-error').style.display = 'block';
+                setTimeout(() => document.getElementById('pin-error').style.display = 'none', 2000);
+            }
+        }
+
+        function managePin(action) {
+            if(action === 'set') {
+                let p = document.getElementById('new-pin-input').value;
+                if(p.length === 4) { data.pin = p; save(); alert("PIN Saved successfully!"); document.getElementById('new-pin-input').value = '';}
+                else { alert("PIN must be exactly 4 digits!"); }
+            } else if(action === 'remove') {
+                data.pin = null; save(); alert("PIN Removed!");
+            }
+        }
+
+        function save() { localStorage.setItem('hisabx_mm_v4', JSON.stringify(data)); renderAll(); updateStats(); if (window.syncOnline) window.syncOnline(); }
         
         window.toggleMenu = () => { document.querySelector('.sidebar').classList.toggle('active-mobile'); document.querySelector('.sidebar-overlay').classList.toggle('active'); };
 
@@ -406,192 +454,200 @@
             document.getElementById(id).classList.add('active'); 
             document.querySelectorAll(`.sidebar [onclick="showModule('${id}')"]`).forEach(el => el.classList.add('active'));
             if(id === 'reports') renderReports(); 
+            if(id === 'transactions') { updateAccountsDropdown(); updateCategories(); }
             document.querySelector('.main-content').scrollTop = 0;
             if(window.innerWidth <= 768) { document.querySelector('.sidebar').classList.remove('active-mobile'); document.querySelector('.sidebar-overlay').classList.remove('active'); }
         }
 
-        function getPrefix(mod) { return { personal:'p', office:'off', business:'b', debt:'d', loans:'l', dps:'dps' }[mod]; }
+        // --- BUDGET LOGIC ---
+        function saveBudget() { 
+            let amt = parseFloat(document.getElementById('budget-amt').value); 
+            let type = document.getElementById('budget-type').value;
+            if(amt >= 0) { data.budget = { amount: amt, type: type }; save(); alert("Budget Saved!"); } 
+        }
+        
+        function saveAccount() { let name = document.getElementById('acc-name').value; let bal = parseFloat(document.getElementById('acc-bal').value || 0); if(!name) return alert("Account name needed!"); data.accounts.push({ id: Date.now(), name: name, balance: bal }); document.getElementById('acc-name').value = ''; document.getElementById('acc-bal').value = ''; save(); }
+        function updateAccountsDropdown() { let sel = document.getElementById('t-account'); sel.innerHTML = data.accounts.map(a => `<option value="${a.id}">${a.name} (৳${a.balance})</option>`).join(''); }
+        function updateCategories() { let type = document.getElementById('t-type').value; let sel = document.getElementById('t-category'); sel.innerHTML = data.categories[type].map(c => `<option value="${c}">${c}</option>`).join(''); }
 
-        function saveData(mod) {
-            const pre = getPrefix(mod); const idx = parseInt(document.getElementById(pre + '-edit-idx').value);
-            
-            // Separate Date & Time Logic
-            let dVal = document.getElementById(pre + '-date').value;
-            let tVal = document.getElementById(pre + '-time').value;
-            
-            let now = new Date();
-            // If empty, auto fill current date/time
-            if(!dVal) dVal = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-            if(!tVal) tVal = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
-            
-            let dt = new Date(dVal + 'T' + tVal);
-            let displayDate = dt.toLocaleDateString('en-GB') + ' • ' + dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            let finalStamp = dt.getTime();
-            
-            let entry = { id: Date.now(), date: displayDate, timestamp: finalStamp, isoDate: dVal, isoTime: tVal };
-            
-            if(mod === 'personal') { 
-                entry.desc = document.getElementById('p-desc').value; entry.amt = parseFloat(document.getElementById('p-amt').value || 0); entry.type = document.getElementById('p-type').value; 
-                if(!entry.desc || !entry.amt) return alert('Description and Amount are required!');
-            }
-            else if(mod === 'office') { 
-                entry.desc = document.getElementById('off-desc').value; entry.total = parseFloat(document.getElementById('off-total').value || 0); entry.adv = parseFloat(document.getElementById('off-adv').value || 0); 
-                if(!entry.desc) return alert('Purpose is required!');
-            }
-            else if(mod === 'business') { 
-                let q = parseFloat(document.getElementById('b-qty').value || 0); let p = parseFloat(document.getElementById('b-price').value || 0); entry.item = document.getElementById('b-item').value; entry.qty = q; entry.total = q * p; 
-                if(!entry.item || !entry.total) return alert('Item name and values required!');
-            }
-            else if(mod === 'debt') { 
-                entry.name = document.getElementById('d-name').value; entry.amt = parseFloat(document.getElementById('d-amt').value || 0); entry.type = document.getElementById('d-type').value; 
-                if(!entry.name || !entry.amt) return alert('Name and Amount required!');
-            }
-            else if(mod === 'loans' || mod === 'dps') { 
-                let target = parseFloat(document.getElementById(pre + '-target').value || 0);
-                let instAmt = parseFloat(document.getElementById(pre + '-inst-amt').value || 0);
-                let paidCount = parseFloat(document.getElementById(pre + '-paid-count').value || 0);
-                let name = document.getElementById(pre + '-name').value;
-                if(!name || target <= 0) return alert('Name and Target amount are required!');
+        function saveTransaction() {
+            let dVal = document.getElementById('t-date').value || new Date().toISOString().split('T')[0];
+            let tVal = document.getElementById('t-time').value || '12:00';
+            let type = document.getElementById('t-type').value;
+            let accId = parseInt(document.getElementById('t-account').value);
+            let cat = document.getElementById('t-category').value;
+            let amt = parseFloat(document.getElementById('t-amt').value || 0);
+            let desc = document.getElementById('t-desc').value;
 
-                entry.name = name;
-                entry.target = target;
-                entry.cycle = document.getElementById(pre + '-cycle').value;
-                entry.instAmt = instAmt;
-                entry.paidCount = paidCount;
-                entry.totalPaid = instAmt * paidCount;
-                entry.due = target - entry.totalPaid;
-            }
-            
-            if(idx === -1) data[mod].unshift(entry); else { data[mod][idx] = entry; document.getElementById(pre + '-edit-idx').value = "-1"; document.getElementById(pre + '-btn').innerText = "Add Record"; }
-            
-            // Clear Inputs
-            document.querySelectorAll(`#${mod} input:not([type='hidden'])`).forEach(i => i.value = ''); 
-            save();
+            if(amt <= 0) return alert("Enter valid amount");
+            let accIndex = data.accounts.findIndex(a => a.id === accId);
+            if(accIndex > -1) { if(type === 'expense') data.accounts[accIndex].balance -= amt; else data.accounts[accIndex].balance += amt; }
+
+            let entry = { id: Date.now(), date: dVal + ' • ' + tVal, isoDate: dVal, isoTime: tVal, type: type, accountId: accId, accountName: data.accounts[accIndex].name, category: cat, amt: amt, desc: desc };
+            data.transactions.unshift(entry); document.getElementById('t-amt').value = ''; document.getElementById('t-desc').value = '';
+            save(); alert("Transaction Saved!"); updateAccountsDropdown();
         }
 
-        function editItem(mod, idx) {
-            const item = data[mod][idx]; const pre = getPrefix(mod); showModule(mod);
-            document.getElementById(pre + '-edit-idx').value = idx; document.getElementById(pre + '-btn').innerText = "Update Record";
+        function getPrefix(mod) { return { office:'off', business:'b', debt:'d', loans:'l', dps:'dps' }[mod]; }
+        function saveData(mod) {
+            const pre = getPrefix(mod); const idx = parseInt(document.getElementById(pre + '-edit-idx').value);
+            let dVal = document.getElementById(pre + '-date').value; let tVal = document.getElementById(pre + '-time').value;
+            let now = new Date(); if(!dVal) dVal = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0'); if(!tVal) tVal = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+            let displayDate = dVal + ' • ' + tVal; let entry = { id: Date.now(), date: displayDate, isoDate: dVal, isoTime: tVal };
             
-            // Set Date and Time fields separately
-            if(item.isoDate) {
-                // Handle older data formats securely
-                document.getElementById(pre + '-date').value = item.isoDate.split('T')[0];
-            }
-            if(item.isoTime) {
-                document.getElementById(pre + '-time').value = item.isoTime;
-            } else if (item.isoDate && item.isoDate.includes('T')) {
-                document.getElementById(pre + '-time').value = item.isoDate.split('T')[1].slice(0,5);
-            }
-
-            if(mod==='personal'){ document.getElementById('p-desc').value=item.desc; document.getElementById('p-amt').value=item.amt; document.getElementById('p-type').value=item.type; }
-            if(mod==='office'){ document.getElementById('off-desc').value=item.desc; document.getElementById('off-total').value=(item.total || item.amt || 0); document.getElementById('off-adv').value=(item.adv || 0); }
-            if(mod==='business'){ document.getElementById('b-item').value=item.item; document.getElementById('b-qty').value=item.qty; document.getElementById('b-price').value=(item.total/item.qty)||0; }
-            if(mod==='debt'){ document.getElementById('d-name').value=item.name; document.getElementById('d-amt').value=item.amt; document.getElementById('d-type').value=item.type; }
-            if(mod==='loans' || mod==='dps'){ 
-                document.getElementById(pre + '-name').value=item.name; document.getElementById(pre + '-target').value=item.target||item.total||item.p||0; 
-                document.getElementById(pre + '-cycle').value=item.cycle||'Monthly'; document.getElementById(pre + '-inst-amt').value=item.instAmt||0; document.getElementById(pre + '-paid-count').value=item.paidCount||0; 
-            }
+            if(mod === 'office') { entry.desc = document.getElementById('off-desc').value; entry.total = parseFloat(document.getElementById('off-total').value || 0); entry.adv = parseFloat(document.getElementById('off-adv').value || 0); }
+            else if(mod === 'business') { let q = parseFloat(document.getElementById('b-qty').value || 0); let p = parseFloat(document.getElementById('b-price').value || 0); entry.item = document.getElementById('b-item').value; entry.qty = q; entry.total = q * p; }
+            else if(mod === 'debt') { entry.name = document.getElementById('d-name').value; entry.amt = parseFloat(document.getElementById('d-amt').value || 0); entry.type = document.getElementById('d-type').value; }
+            else if(mod === 'loans' || mod === 'dps') { entry.target = parseFloat(document.getElementById(pre + '-target').value || 0); entry.instAmt = parseFloat(document.getElementById(pre + '-inst-amt').value || 0); entry.paidCount = parseFloat(document.getElementById(pre + '-paid-count').value || 0); entry.name = document.getElementById(pre + '-name').value; entry.cycle = document.getElementById(pre + '-cycle').value; entry.totalPaid = entry.instAmt * entry.paidCount; }
+            
+            if(idx === -1) data[mod].unshift(entry); else data[mod][idx] = entry;
+            document.querySelectorAll(`#${mod} input:not([type='hidden'])`).forEach(i => i.value = ''); document.getElementById(pre + '-edit-idx').value = "-1"; save();
         }
 
         let delTask = {};
         function triggerDelete(mod, idx) { delTask = { mod, idx }; document.getElementById('custom-confirm').classList.add('active'); }
         function closeConfirmModal() { document.getElementById('custom-confirm').classList.remove('active'); }
-        document.getElementById('confirm-yes-btn').onclick = () => { if(delTask.mod === 'RESET') { localStorage.clear(); location.reload(); } else { data[delTask.mod].splice(delTask.idx, 1); save(); if(document.getElementById('reports').classList.contains('active')) renderReports(); closeConfirmModal(); } };
+        document.getElementById('confirm-yes-btn').onclick = () => { 
+            if(delTask.mod === 'RESET') { localStorage.clear(); location.reload(); } 
+            else { 
+                if(delTask.mod === 'transactions') {
+                    let t = data.transactions[delTask.idx]; let accIdx = data.accounts.findIndex(a => a.id === t.accountId);
+                    if(accIdx > -1) { if(t.type === 'expense') data.accounts[accIdx].balance += t.amt; else data.accounts[accIdx].balance -= t.amt; }
+                }
+                data[delTask.mod].splice(delTask.idx, 1); save(); closeConfirmModal(); 
+            } 
+        };
         function triggerReset() { delTask = { mod: 'RESET' }; document.getElementById('custom-confirm').classList.add('active'); }
 
         function renderAll() {
-            const btnHtml = (mod, i) => `<div class="action-btns"><i class="fas fa-edit edit-btn" onclick="editItem('${mod}', ${i})"></i><i class="fas fa-trash del-btn" onclick="triggerDelete('${mod}', ${i})"></i></div>`;
-            document.getElementById('p-table').innerHTML = data.personal.map((it, i) => `<tr><td>${it.desc}<br><small style="color:#A0A0A0">${it.date}</small></td><td><span class="badge ${it.type==='income'?'badge-success':'badge-warning'}">${it.type}</span></td><td>৳${it.amt}</td><td>${btnHtml('personal', i)}</td></tr>`).join('');
-            
-            document.getElementById('off-table').innerHTML = data.office.map((it, i) => {
-                let t = it.total || it.amt || 0; let a = it.adv || 0; let d = t - a;
-                return `<tr><td>${it.desc}<br><small style="color:#A0A0A0">${it.date}</small></td><td>৳${t}</td><td style="color:var(--success)">৳${a}</td><td style="color:var(--danger)">৳${d}</td><td>${btnHtml('office', i)}</td></tr>`;
-            }).join('');
-            
+            const btnHtml = (mod, i) => `<div class="action-btns"><i class="fas fa-trash del-btn" onclick="triggerDelete('${mod}', ${i})"></i></div>`;
+            document.getElementById('acc-table').innerHTML = data.accounts.map((it, i) => `<tr><td><i class="fas fa-wallet" style="color:var(--accent-gold)"></i> ${it.name}</td><td style="color:${it.balance>=0?'var(--success)':'var(--danger)'}">৳${it.balance}</td><td>${btnHtml('accounts', i)}</td></tr>`).join('');
+            document.getElementById('t-table').innerHTML = data.transactions.map((it, i) => `<tr><td><small style="color:#A0A0A0">${it.date}</small><br><span class="badge badge-info">${it.accountName}</span></td><td><strong>${it.category}</strong><br><small>${it.desc}</small></td><td><span class="badge ${it.type==='income'?'badge-success':'badge-warning'}">${it.type==='income'?'+':'-'} ৳${it.amt}</span></td><td>${btnHtml('transactions', i)}</td></tr>`).join('');
+            document.getElementById('off-table').innerHTML = data.office.map((it, i) => `<tr><td>${it.desc}<br><small style="color:#A0A0A0">${it.date}</small></td><td>৳${it.total||0}</td><td style="color:var(--success)">৳${it.adv||0}</td><td style="color:var(--danger)">৳${(it.total||0)-(it.adv||0)}</td><td>${btnHtml('office', i)}</td></tr>`).join('');
             document.getElementById('b-table').innerHTML = data.business.map((it, i) => `<tr><td>${it.item}<br><small style="color:#A0A0A0">${it.date}</small></td><td>${it.qty}</td><td>৳${it.total}</td><td>${btnHtml('business', i)}</td></tr>`).join('');
             document.getElementById('d-table').innerHTML = data.debt.map((it, i) => `<tr><td>${it.name}<br><small style="color:#A0A0A0">${it.date}</small></td><td><span class="badge ${it.type==='receivable'?'badge-success':'badge-warning'}">${it.type}</span></td><td>৳${it.amt}</td><td>${btnHtml('debt', i)}</td></tr>`).join('');
             
             const renderInstTable = (modData, modName) => modData.map((it, i) => {
-                let tgt = it.target || it.total || it.p || 0;
-                let paid = it.totalPaid || it.paid || 0;
-                let due = tgt - paid;
-                let pct = tgt > 0 ? Math.min(100, (paid / tgt) * 100).toFixed(0) : 0;
+                let tgt = it.target || 0; let paid = it.totalPaid || 0; let due = tgt - paid; let pct = tgt > 0 ? Math.min(100, (paid / tgt) * 100).toFixed(0) : 0;
                 let badge = due <= 0 ? `<span class="badge badge-success">Completed</span>` : `<span class="badge badge-warning">Due</span>`;
-                return `<tr><td>${it.name}<br><small style="color:#A0A0A0">${it.cycle||'N/A'} • ${it.date}</small></td><td>৳${tgt.toFixed(0)}</td><td><div class="prog-bg"><div class="prog-fill" style="width:${pct}%"></div></div><small>${pct}%</small><br><small>৳${paid.toFixed(0)}</small></td><td>৳${due>0?due.toFixed(0):0} ${badge}</td><td>${btnHtml(modName, i)}</td></tr>`;
+                return `<tr><td>${it.name}<br><small style="color:#A0A0A0">${it.cycle||'N/A'} • ${it.date}</small></td><td>৳${tgt}</td><td><div class="prog-bg"><div class="prog-fill" style="width:${pct}%"></div></div><small>৳${paid}</small></td><td>৳${due>0?due:0} ${badge}</td><td>${btnHtml(modName, i)}</td></tr>`;
             }).join('');
-
-            document.getElementById('l-table').innerHTML = renderInstTable(data.loans, 'loans');
-            document.getElementById('dps-table').innerHTML = renderInstTable(data.dps, 'dps');
+            document.getElementById('l-table').innerHTML = renderInstTable(data.loans, 'loans'); document.getElementById('dps-table').innerHTML = renderInstTable(data.dps, 'dps');
             
-            document.getElementById('dash-greeting').innerText = "Welcome, " + data.profile.name; 
-            document.getElementById('dash-subtitle').innerText = data.profile.loc + " | " + data.profile.biz; 
-            if(data.profile.img) document.getElementById('prof-img').src = data.profile.img;
+            document.getElementById('dash-greeting').innerText = "Welcome, " + data.profile.name; document.getElementById('dash-subtitle').innerText = data.profile.loc + " | " + data.profile.biz; 
+            if(data.profile.img) document.getElementById('prof-img').src = data.profile.img; 
             
-            document.getElementById('set-name').value = data.profile.name; document.getElementById('set-biz').value = data.profile.biz; document.getElementById('set-loc').value = data.profile.loc;
-        }
-
-        function renderReports() {
-            const filter = document.getElementById('report-filter').value; 
-            const searchQ = document.getElementById('report-search').value.toLowerCase();
-            const now = new Date(); let reportList = [];
+            if(data.budget) {
+                document.getElementById('budget-amt').value = data.budget.amount || '';
+                document.getElementById('budget-type').value = data.budget.type || 'Monthly';
+            }
             
-            ['personal', 'office', 'business', 'debt'].forEach(mod => { 
-                data[mod].forEach((item, idx) => { 
-                    const itemDate = new Date(item.timestamp || item.id); 
-                    let includeDate = (filter==='all') || (filter==='today' && itemDate.toDateString()===now.toDateString()) || (filter==='weekly' && (now - itemDate)/(1000*60*60*24) <= 7) || (filter==='monthly' && itemDate.getMonth()===now.getMonth()) || (filter==='yearly' && itemDate.getFullYear()===now.getFullYear()); 
-                    let searchStr = (item.desc || item.name || item.item || "").toLowerCase();
-                    let includeSearch = searchQ === '' || searchStr.includes(searchQ);
-                    
-                    if(includeDate && includeSearch) reportList.push({ ...item, module: mod, originalIdx: idx }); 
-                }); 
-            });
-            
-            let inc = 0, exp = 0;
-            document.getElementById('report-table').innerHTML = reportList.map(it => {
-                let amt = it.amt || it.total || 0; 
-                let isInc = (it.type==='income' || it.module==='business' || it.type==='receivable' || it.module==='office'); 
-                
-                if(isInc && it.module !== 'office') inc += amt; else if(!isInc) exp += amt;
-                
-                return `<tr><td><strong>${it.module.toUpperCase()}</strong><br>${it.desc||it.item||it.name}<br><small style="color:#A0A0A0">${it.date}</small></td><td><span class="badge ${isInc?'badge-success':'badge-warning'}">${it.type||'Sale/Service'}</span></td><td>৳${amt}</td><td><div class="action-btns"><i class="fas fa-edit edit-btn" onclick="editItem('${it.module}', ${it.originalIdx})"></i><i class="fas fa-trash del-btn" onclick="triggerDelete('${it.module}', ${it.originalIdx})"></i></div></td></tr>`;
-            }).join('');
-            document.getElementById('rep-income').innerText = '৳' + inc; document.getElementById('rep-expense').innerText = '৳' + exp;
+            document.getElementById('set-name').value = data.profile.name;
+            document.getElementById('set-biz').value = data.profile.biz;
+            document.getElementById('set-loc').value = data.profile.loc;
         }
 
         function updateStats() {
-            let inc = data.personal.filter(i => i.type==='income').reduce((a, b) => a + b.amt, 0); 
-            let exp = data.personal.filter(i => i.type==='expense').reduce((a, b) => a + b.amt, 0);
-            document.getElementById('db-income').innerText = '৳'+inc; document.getElementById('db-expense').innerText = '৳'+exp; document.getElementById('db-balance').innerText = '৳'+(inc-exp);
+            let accHtml = ''; let totalAssets = 0;
+            data.accounts.forEach(a => { totalAssets += a.balance; accHtml += `<div class="card"><small>${a.name}</small><div class="card-value">৳${a.balance}</div></div>`; });
+            accHtml += `<div class="card" style="border-color:var(--success)"><small>Total Assets</small><div class="card-value" style="color:var(--success)">৳${totalAssets}</div></div>`;
+            document.getElementById('acc-summary-cards').innerHTML = accHtml;
 
-            let offTotal = data.office.reduce((a, b) => a + (b.total || b.amt || 0), 0);
-            let offAdv = data.office.reduce((a, b) => a + (b.adv || 0), 0);
-            document.getElementById('db-off-total').innerText = '৳'+offTotal; document.getElementById('db-off-adv').innerText = '৳'+offAdv; document.getElementById('db-off-due').innerText = '৳'+(offTotal - offAdv);
+            let now = new Date();
+            let todayStr = now.toISOString().split('T')[0];
+            let curMonth = todayStr.substring(0, 7); 
+            let curYear = todayStr.substring(0, 4);  
+            
+            let d = new Date(now);
+            let weekStart = new Date(d.setDate(d.getDate() - d.getDay()));
+            weekStart.setHours(0,0,0,0);
+
+            let bType = data.budget.type || 'Monthly';
+            let bAmt = data.budget.amount || 0;
+
+            let spentTotal = data.transactions.reduce((sum, t) => {
+                if (t.type === 'expense' && t.isoDate) {
+                    let tDate = new Date(t.isoDate);
+                    if (bType === 'Daily' && t.isoDate === todayStr) return sum + t.amt;
+                    if (bType === 'Weekly' && tDate >= weekStart) return sum + t.amt;
+                    if (bType === 'Monthly' && t.isoDate.startsWith(curMonth)) return sum + t.amt;
+                    if (bType === 'Yearly' && t.isoDate.startsWith(curYear)) return sum + t.amt;
+                }
+                return sum;
+            }, 0);
+            
+            document.getElementById('budget-title-display').innerText = `${bType} Budget Status`;
+            document.getElementById('budget-spent-text').innerText = `Spent: ৳${spentTotal}`; 
+            document.getElementById('budget-total-text').innerText = `Budget: ৳${bAmt}`;
+            
+            let bgPct = bAmt > 0 ? Math.min(100, (spentTotal / bAmt) * 100) : 0;
+            let fill = document.getElementById('budget-prog-fill'); 
+            fill.style.width = bgPct + '%'; 
+            fill.style.background = bgPct >= 90 ? 'var(--danger)' : (bgPct >= 70 ? 'var(--warning)' : 'var(--accent-gold)');
+
+            renderChart(curMonth);
+        }
+
+        function renderChart(currentMonth) {
+            let expenses = data.transactions.filter(t => t.type === 'expense' && t.isoDate && t.isoDate.startsWith(currentMonth));
+            let catTotals = {}; expenses.forEach(t => { catTotals[t.category] = (catTotals[t.category] || 0) + t.amt; });
+            let labels = Object.keys(catTotals); let values = Object.values(catTotals); let colors = ['#D4AF37', '#FF5252', '#4CAF50', '#2196F3', '#9C27B0', '#FF9800', '#00BCD4'];
+            if(expenseChartInstance) expenseChartInstance.destroy();
+            const ctx = document.getElementById('expenseChart').getContext('2d');
+            expenseChartInstance = new Chart(ctx, { type: 'doughnut', data: { labels: labels, datasets: [{ data: values, backgroundColor: colors.slice(0, labels.length), borderWidth: 1, borderColor: '#000' }] }, options: { plugins: { legend: { position: 'right', labels: { color: '#fff' } } }, maintainAspectRatio: false } });
+        }
+
+        function renderReports() {
+            let combined = []; data.transactions.forEach(it => combined.push({...it, mod: 'Transaction'})); data.office.forEach(it => combined.push({...it, mod: 'Office', category: 'Ledger', amt: it.total, type: 'income'})); data.business.forEach(it => combined.push({...it, mod: 'Business', category: 'Sale', amt: it.total, type: 'income'})); combined.sort((a,b) => new Date(b.isoDate) - new Date(a.isoDate));
+            document.getElementById('report-table').innerHTML = combined.map(it => `<tr><td><strong>${it.mod}</strong><br><small style="color:#A0A0A0">${it.date}</small></td><td>${it.category}</td><td><span class="badge ${it.type==='income'?'badge-success':'badge-warning'}">৳${it.amt}</span></td></tr>`).join('');
         }
 
         function saveProfile() { data.profile.name = document.getElementById('set-name').value; data.profile.biz = document.getElementById('set-biz').value; data.profile.loc = document.getElementById('set-loc').value; save(); alert("Updated!"); }
         function uploadImg(e) { const reader = new FileReader(); reader.onload = () => { data.profile.img = reader.result; save(); }; reader.readAsDataURL(e.target.files[0]); }
         
-        function exportData() { 
+        // --- GOOGLE DRIVE / CLOUD BACKUP VIA SHARE API ---
+        async function backupToDrive() {
             try {
-                const blob = new Blob([JSON.stringify(data)], {type: "application/json"}); 
-                const url = URL.createObjectURL(blob); 
-                const a = document.createElement('a'); 
-                a.style.display = 'none';
-                a.href = url; 
-                a.download = "HisabX_Backup.json"; 
-                document.body.appendChild(a);
-                a.click(); 
-                document.body.removeChild(a);
-                setTimeout(() => URL.revokeObjectURL(url), 100);
-            } catch (e) {
-                alert("Backup failed. Error: " + e.message);
+                const jsonStr = JSON.stringify(data);
+                const blob = new Blob([jsonStr], {type: "application/json"});
+                const file = new File([blob], "HisabX_Backup.json", {type: "application/json"});
+                
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({ files: [file], title: 'HisabX Pro Backup', text: 'My HisabX Database Backup File' });
+                } else {
+                    exportData();
+                    alert("Your browser does not support direct sharing to Drive. The file has been downloaded. Please manually upload it to Google Drive.");
+                }
+            } catch (error) {
+                console.error("Backup failed", error);
             }
         }
-        
+
+        function exportData() { try { const blob = new Blob([JSON.stringify(data)], {type: "application/json"}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.style.display = 'none'; a.href = url; a.download = "HisabX_MoneyManager.json"; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(() => URL.revokeObjectURL(url), 100); } catch (e) { alert("Backup failed: " + e.message); } }
         function importData(e) { const reader = new FileReader(); reader.onload = (ev) => { data = JSON.parse(ev.target.result); save(); location.reload(); }; reader.readAsText(e.target.files[0]); }
         
-        renderAll(); updateStats();
+        // Start App Flow
+        initApp();
+    // --- ONLINE/OFFLINE STATUS CHECKER ---
+function updateNetworkStatus() {
+    const statusText = document.getElementById('status-text');
+    const statusDot = document.getElementById('status-dot');
+    
+    if (navigator.onLine) {
+        statusText.textContent = "Online";
+        statusText.style.color = "var(--success)"; // সবুজ রং
+        statusDot.className = "status-dot online-dot";
+    } else {
+        statusText.textContent = "Offline";
+        statusText.style.color = "var(--danger)"; // লাল রং
+        statusDot.className = "status-dot offline-dot";
+    }
+}
+
+// পেজ লোড হলে এবং নেটওয়ার্ক পরিবর্তন হলে স্ট্যাটাস আপডেট করবে
+window.addEventListener('load', updateNetworkStatus);
+window.addEventListener('online', updateNetworkStatus);
+window.addEventListener('offline', updateNetworkStatus);
     </script>
 </body>
 </html>
