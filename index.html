@@ -45,7 +45,9 @@
         .glass-box { background: var(--bg-secondary); padding: 20px; border-radius: 12px; border: 1px solid #222; margin-bottom: 20px; }
         .input-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 10px; }
         input, select { background: #000; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 6px; outline: none; width: 100%; }
-        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+        
+        /* Updated date picker CSS for datetime-local */
+        input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
         
         .btn-gold { background: var(--accent-gold); color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
         .btn-gold:hover { transform: scale(0.98); opacity: 0.9; }
@@ -59,7 +61,6 @@
         .edit-btn { color: var(--accent-gold); cursor: pointer; }
         .del-btn { color: var(--danger); cursor: pointer; }
 
-        /* Progress Bar & Badges CSS */
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; display: inline-block; margin-top: 4px; }
         .badge-success { background: rgba(76, 175, 80, 0.15); color: var(--success); border: 1px solid var(--success); }
         .badge-warning { background: rgba(255, 193, 7, 0.15); color: var(--warning); border: 1px solid var(--warning); }
@@ -77,7 +78,6 @@
         .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; }
         .sidebar-overlay.active { display: block; }
 
-        /* Print CSS for PDF Download */
         @media print {
             .sidebar, .glass-box, .btn-gold, .action-btns, .sidebar-overlay, .brand-mobile { display: none !important; }
             .main-content { background: #fff; padding: 0; margin: 0; }
@@ -150,7 +150,7 @@
             <h2>Personal Finance</h2>
             <div class="glass-box">
                 <div class="input-row">
-                    <input type="date" id="p-date" title="তারিখ সিলেক্ট করুন">
+                    <input type="datetime-local" id="p-date" title="তারিখ ও সময় সিলেক্ট করুন">
                     <input type="text" id="p-desc" placeholder="Description">
                     <input type="number" id="p-amt" placeholder="Amount">
                     <select id="p-type">
@@ -168,7 +168,7 @@
             <h2>Office Ledger</h2>
             <div class="glass-box">
                 <div class="input-row">
-                    <input type="date" id="off-date" title="তারিখ সিলেক্ট করুন">
+                    <input type="datetime-local" id="off-date" title="তারিখ ও সময় সিলেক্ট করুন">
                     <input type="text" id="off-desc" placeholder="বিবরণ (Purpose)">
                     <input type="number" id="off-total" placeholder="মোট (Total Amount)">
                     <input type="number" id="off-adv" placeholder="অগ্রীম (Advance Paid)">
@@ -183,7 +183,7 @@
             <h2>Business Sales</h2>
             <div class="glass-box">
                 <div class="input-row">
-                    <input type="date" id="b-date" title="তারিখ সিলেক্ট করুন">
+                    <input type="datetime-local" id="b-date" title="তারিখ ও সময় সিলেক্ট করুন">
                     <input type="text" id="b-item" placeholder="Item Name">
                     <input type="number" id="b-qty" placeholder="Qty">
                     <input type="number" id="b-price" placeholder="Price">
@@ -198,7 +198,7 @@
             <h2>Debt & Debtors</h2>
             <div class="glass-box">
                 <div class="input-row">
-                    <input type="date" id="d-date" title="তারিখ সিলেক্ট করুন">
+                    <input type="datetime-local" id="d-date" title="তারিখ ও সময় সিলেক্ট করুন">
                     <input type="text" id="d-name" placeholder="Name">
                     <input type="number" id="d-amt" placeholder="Amount">
                     <select id="d-type">
@@ -216,7 +216,7 @@
             <h2>Loans Management</h2>
             <div class="glass-box">
                 <div class="input-row">
-                    <input type="date" id="l-date" title="শুরুর তারিখ">
+                    <input type="datetime-local" id="l-date" title="শুরুর তারিখ ও সময়">
                     <input type="text" id="l-name" placeholder="Bank or Person">
                     <input type="number" id="l-target" placeholder="Target / Total Loan">
                     <select id="l-cycle">
@@ -239,7 +239,7 @@
             <h2>DPS / Savings</h2>
             <div class="glass-box">
                 <div class="input-row">
-                    <input type="date" id="dps-date" title="শুরুর তারিখ">
+                    <input type="datetime-local" id="dps-date" title="শুরুর তারিখ ও সময়">
                     <input type="text" id="dps-name" placeholder="Bank or Plan Name">
                     <input type="number" id="dps-target" placeholder="Target Saving Amount">
                     <select id="dps-cycle">
@@ -395,12 +395,19 @@
         function saveData(mod) {
             const pre = getPrefix(mod); const idx = parseInt(document.getElementById(pre + '-edit-idx').value);
             
-            // Date Parsing
+            // Time & Date Parsing Update
             let inputDate = document.getElementById(pre + '-date').value;
-            let finalDate = inputDate ? new Date(inputDate).toLocaleDateString() : new Date().toLocaleDateString();
-            let finalStamp = inputDate ? new Date(inputDate).getTime() : new Date().getTime();
+            let dt = inputDate ? new Date(inputDate) : new Date();
             
-            let entry = { id: Date.now(), date: finalDate, timestamp: finalStamp, isoDate: inputDate || new Date().toISOString().split('T')[0] };
+            // Format for Display: Date + Time
+            let displayDate = dt.toLocaleDateString('en-GB') + ' ' + dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            let finalStamp = dt.getTime();
+            
+            // Format for ISO value mapping back to input (YYYY-MM-DDTHH:mm)
+            let tzoffset = (new Date()).getTimezoneOffset() * 60000;
+            let localISOTime = new Date(dt.getTime() - tzoffset).toISOString().slice(0, 16);
+            
+            let entry = { id: Date.now(), date: displayDate, timestamp: finalStamp, isoDate: localISOTime };
             
             if(mod === 'personal') { 
                 entry.desc = document.getElementById('p-desc').value; entry.amt = parseFloat(document.getElementById('p-amt').value || 0); entry.type = document.getElementById('p-type').value; 
@@ -442,7 +449,11 @@
             const item = data[mod][idx]; const pre = getPrefix(mod); showModule(mod);
             document.getElementById(pre + '-edit-idx').value = idx; document.getElementById(pre + '-btn').innerText = "Update Record";
             
-            if(item.isoDate) document.getElementById(pre + '-date').value = item.isoDate;
+            // Backward compatibility for old dates without time
+            if(item.isoDate) {
+                if(item.isoDate.length === 10) document.getElementById(pre + '-date').value = item.isoDate + "T12:00";
+                else document.getElementById(pre + '-date').value = item.isoDate;
+            }
 
             if(mod==='personal'){ document.getElementById('p-desc').value=item.desc; document.getElementById('p-amt').value=item.amt; document.getElementById('p-type').value=item.type; }
             if(mod==='office'){ document.getElementById('off-desc').value=item.desc; document.getElementById('off-total').value=(item.total || item.amt || 0); document.getElementById('off-adv').value=(item.adv || 0); }
@@ -462,15 +473,15 @@
 
         function renderAll() {
             const btnHtml = (mod, i) => `<div class="action-btns"><i class="fas fa-edit edit-btn" onclick="editItem('${mod}', ${i})"></i><i class="fas fa-trash del-btn" onclick="triggerDelete('${mod}', ${i})"></i></div>`;
-            document.getElementById('p-table').innerHTML = data.personal.map((it, i) => `<tr><td>${it.desc}<br><small>${it.date}</small></td><td><span class="badge ${it.type==='income'?'badge-success':'badge-warning'}">${it.type}</span></td><td>৳${it.amt}</td><td>${btnHtml('personal', i)}</td></tr>`).join('');
+            document.getElementById('p-table').innerHTML = data.personal.map((it, i) => `<tr><td>${it.desc}<br><small style="color:#A0A0A0">${it.date}</small></td><td><span class="badge ${it.type==='income'?'badge-success':'badge-warning'}">${it.type}</span></td><td>৳${it.amt}</td><td>${btnHtml('personal', i)}</td></tr>`).join('');
             
             document.getElementById('off-table').innerHTML = data.office.map((it, i) => {
                 let t = it.total || it.amt || 0; let a = it.adv || 0; let d = t - a;
-                return `<tr><td>${it.desc}<br><small>${it.date}</small></td><td>৳${t}</td><td style="color:var(--success)">৳${a}</td><td style="color:var(--danger)">৳${d}</td><td>${btnHtml('office', i)}</td></tr>`;
+                return `<tr><td>${it.desc}<br><small style="color:#A0A0A0">${it.date}</small></td><td>৳${t}</td><td style="color:var(--success)">৳${a}</td><td style="color:var(--danger)">৳${d}</td><td>${btnHtml('office', i)}</td></tr>`;
             }).join('');
             
-            document.getElementById('b-table').innerHTML = data.business.map((it, i) => `<tr><td>${it.item}<br><small>${it.date}</small></td><td>${it.qty}</td><td>৳${it.total}</td><td>${btnHtml('business', i)}</td></tr>`).join('');
-            document.getElementById('d-table').innerHTML = data.debt.map((it, i) => `<tr><td>${it.name}<br><small>${it.date}</small></td><td><span class="badge ${it.type==='receivable'?'badge-success':'badge-warning'}">${it.type}</span></td><td>৳${it.amt}</td><td>${btnHtml('debt', i)}</td></tr>`).join('');
+            document.getElementById('b-table').innerHTML = data.business.map((it, i) => `<tr><td>${it.item}<br><small style="color:#A0A0A0">${it.date}</small></td><td>${it.qty}</td><td>৳${it.total}</td><td>${btnHtml('business', i)}</td></tr>`).join('');
+            document.getElementById('d-table').innerHTML = data.debt.map((it, i) => `<tr><td>${it.name}<br><small style="color:#A0A0A0">${it.date}</small></td><td><span class="badge ${it.type==='receivable'?'badge-success':'badge-warning'}">${it.type}</span></td><td>৳${it.amt}</td><td>${btnHtml('debt', i)}</td></tr>`).join('');
             
             // Render Loans & DPS with Progress Bar
             const renderInstTable = (modData, modName) => modData.map((it, i) => {
@@ -479,7 +490,7 @@
                 let due = tgt - paid;
                 let pct = tgt > 0 ? Math.min(100, (paid / tgt) * 100).toFixed(0) : 0;
                 let badge = due <= 0 ? `<span class="badge badge-success">Completed</span>` : `<span class="badge badge-warning">Due</span>`;
-                return `<tr><td>${it.name}<br><small>${it.cycle||'N/A'} • ${it.date}</small></td><td>৳${tgt.toFixed(0)}</td><td><div class="prog-bg"><div class="prog-fill" style="width:${pct}%"></div></div><small>${pct}%</small><br><small>৳${paid.toFixed(0)}</small></td><td>৳${due>0?due.toFixed(0):0} ${badge}</td><td>${btnHtml(modName, i)}</td></tr>`;
+                return `<tr><td>${it.name}<br><small style="color:#A0A0A0">${it.cycle||'N/A'} • ${it.date}</small></td><td>৳${tgt.toFixed(0)}</td><td><div class="prog-bg"><div class="prog-fill" style="width:${pct}%"></div></div><small>${pct}%</small><br><small>৳${paid.toFixed(0)}</small></td><td>৳${due>0?due.toFixed(0):0} ${badge}</td><td>${btnHtml(modName, i)}</td></tr>`;
             }).join('');
 
             document.getElementById('l-table').innerHTML = renderInstTable(data.loans, 'loans');
@@ -515,7 +526,7 @@
                 
                 if(isInc && it.module !== 'office') inc += amt; else if(!isInc) exp += amt;
                 
-                return `<tr><td><strong>${it.module.toUpperCase()}</strong><br>${it.desc||it.item||it.name}<br><small>${it.date}</small></td><td><span class="badge ${isInc?'badge-success':'badge-warning'}">${it.type||'Sale/Service'}</span></td><td>৳${amt}</td><td><div class="action-btns"><i class="fas fa-edit edit-btn" onclick="editItem('${it.module}', ${it.originalIdx})"></i><i class="fas fa-trash del-btn" onclick="triggerDelete('${it.module}', ${it.originalIdx})"></i></div></td></tr>`;
+                return `<tr><td><strong>${it.module.toUpperCase()}</strong><br>${it.desc||it.item||it.name}<br><small style="color:#A0A0A0">${it.date}</small></td><td><span class="badge ${isInc?'badge-success':'badge-warning'}">${it.type||'Sale/Service'}</span></td><td>৳${amt}</td><td><div class="action-btns"><i class="fas fa-edit edit-btn" onclick="editItem('${it.module}', ${it.originalIdx})"></i><i class="fas fa-trash del-btn" onclick="triggerDelete('${it.module}', ${it.originalIdx})"></i></div></td></tr>`;
             }).join('');
             document.getElementById('rep-income').innerText = '৳' + inc; document.getElementById('rep-expense').innerText = '৳' + exp;
         }
@@ -532,7 +543,25 @@
 
         function saveProfile() { data.profile.name = document.getElementById('set-name').value; data.profile.biz = document.getElementById('set-biz').value; data.profile.loc = document.getElementById('set-loc').value; save(); alert("Updated!"); }
         function uploadImg(e) { const reader = new FileReader(); reader.onload = () => { data.profile.img = reader.result; save(); }; reader.readAsDataURL(e.target.files[0]); }
-        function exportData() { const blob = new Blob([JSON.stringify(data)], {type: "application/json"}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = "HisabX_Backup.json"; a.click(); }
+        
+        // Crash Fixed Backup Download Function
+        function exportData() { 
+            try {
+                const blob = new Blob([JSON.stringify(data)], {type: "application/json"}); 
+                const url = URL.createObjectURL(blob); 
+                const a = document.createElement('a'); 
+                a.style.display = 'none';
+                a.href = url; 
+                a.download = "HisabX_Backup.json"; 
+                document.body.appendChild(a); // Append to DOM to prevent crash
+                a.click(); 
+                document.body.removeChild(a); // Clean up
+                setTimeout(() => URL.revokeObjectURL(url), 100); // Release memory safely
+            } catch (e) {
+                alert("Backup failed. Error: " + e.message);
+            }
+        }
+        
         function importData(e) { const reader = new FileReader(); reader.onload = (ev) => { data = JSON.parse(ev.target.result); save(); location.reload(); }; reader.readAsText(e.target.files[0]); }
         
         renderAll(); updateStats();
