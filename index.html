@@ -98,6 +98,7 @@
         /* Modern Toast Notification & Modal */
         #toast-container { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 100000; display: flex; flex-direction: column; gap: 10px; }
         .toast { background: #222; color: #fff; padding: 12px 24px; border-radius: 8px; border-left: 4px solid var(--accent-gold); box-shadow: 0 4px 15px rgba(0,0,0,0.6); animation: slideUp 0.3s ease forwards; display: flex; align-items: center; gap: 12px; font-size: 0.9rem; font-weight: 500;}
+        .toast.info { border-left-color: var(--blue); }
         .toast.error { border-left-color: var(--danger); }
         .toast.success { border-left-color: var(--success); }
         @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
@@ -454,7 +455,7 @@
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${msg}`;
+            toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : (type === 'info' ? 'fa-info-circle' : 'fa-exclamation-circle')}"></i> ${msg}`;
             container.appendChild(toast);
             setTimeout(() => {
                 toast.style.animation = 'fadeOut 0.3s ease forwards';
@@ -527,21 +528,29 @@
 
         function saveToCloud() {
             if (userDocRef && isOnline && setDoc) {
-                setDoc(userDocRef, { data: window.data }).catch(e=>console.log("Sync Error", e));
+                setDoc(userDocRef, { data: window.data }, { merge: true })
+                .catch(e => console.log("Sync Error", e));
             }
         }
 
-        // Bulletproof Network Status Update
+        // 🌟 Auto-Sync Trigger System 🌟
         window.updateNetworkStatus = function() {
             try {
                 const dot = document.getElementById('status-dot');
                 const txt = document.getElementById('status-text');
+                const wasOffline = !isOnline;
                 isOnline = navigator.onLine;
                 
                 if(dot && txt) {
                     if(isOnline) {
                         dot.className = "status-dot online-dot"; 
                         txt.innerText = "Online - Synced"; 
+                        
+                        // ইন্টারনেট আসলে অটো সিঙ্ক করবে!
+                        if(wasOffline && userDocRef) {
+                            showToast("Internet restored! Syncing data...", "info");
+                            saveToCloud();
+                        }
                     } else {
                         dot.className = "status-dot offline-dot"; 
                         txt.innerText = "Offline - Local Save"; 
@@ -557,7 +566,7 @@
                     }
                 }
             } catch (err) {
-                console.error("Network status update error:", err);
+                console.error("Network status error:", err);
             }
         };
 
@@ -711,7 +720,6 @@
             reader.readAsText(e.target.files[0]);
         }
 
-        // --- Data Reset Function ---
         window.factoryReset = function() {
             showConfirm("Are you absolutely sure? This will permanently wipe all local and cloud data!", () => {
                 window.data = { accounts: [], transactions: [], office: [], business: [], debt: [], loans: [], dps: [], budget: { type: 'Monthly', amount: 0 }, profile: { name: '', biz: '', loc: '', img: '' }, lastUpdated: Date.now() };
@@ -866,7 +874,6 @@
             if(!window.data.lastUpdated) window.data.lastUpdated = Date.now();
             renderAll();
             
-            // Show correct screen without flashing
             if(localStorage.getItem('pragati_pin')) { 
                 document.getElementById('pin-lock-screen').style.display = 'flex'; 
                 document.getElementById('app-content').classList.remove('unlocked');
@@ -878,7 +885,6 @@
             loadFirebase();
         }
 
-        // Run instantly instead of waiting for window.onload
         initApp();
     </script>
 </body>
