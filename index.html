@@ -427,8 +427,7 @@
 
     <script type="module">
         let app, auth, db;
-        let signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, doc, setDoc, getDoc, onSnapshot;
-        let userDocRef = null;
+        let signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, doc, setDoc, getDoc, onSnapshot, collection, deleteDoc;
         let isOnline = navigator.onLine;
 
         const firebaseConfig = {
@@ -444,7 +443,7 @@
         window.data = {
             accounts: [], transactions: [], office: [], business: [],
             debt: [], loans: [], dps: [], budget: { type: 'Monthly', amount: 0 },
-            profile: { name: '', biz: '', loc: '', img: '' }, lastUpdated: Date.now()
+            profile: { name: '', biz: '', loc: '', img: '' }
         };
 
         const incomeCats = ["Business Sale", "Freelance", "Salary", "Loan Received", "Other Income"];
@@ -457,25 +456,19 @@
             toast.className = `toast ${type}`;
             toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : (type === 'info' ? 'fa-info-circle' : 'fa-exclamation-circle')}"></i> ${msg}`;
             container.appendChild(toast);
-            setTimeout(() => {
-                toast.style.animation = 'fadeOut 0.3s ease forwards';
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
+            setTimeout(() => { toast.style.animation = 'fadeOut 0.3s ease forwards'; setTimeout(() => toast.remove(), 300); }, 3000);
         }
 
         window.showConfirm = function(msg, callback) {
             document.getElementById('confirm-msg').innerText = msg;
             const modal = document.getElementById('custom-confirm');
             modal.style.display = 'flex';
-            
             const yesBtn = document.getElementById('confirm-yes');
             const noBtn = document.getElementById('confirm-no');
-            
             const newYesBtn = yesBtn.cloneNode(true);
             const newNoBtn = noBtn.cloneNode(true);
             yesBtn.parentNode.replaceChild(newYesBtn, yesBtn);
             noBtn.parentNode.replaceChild(newNoBtn, noBtn);
-            
             newYesBtn.onclick = () => { modal.style.display = 'none'; callback(); };
             newNoBtn.onclick = () => { modal.style.display = 'none'; };
         }
@@ -486,153 +479,157 @@
             if(key === 'clear') { currentPin = ''; }
             else if(key === 'back') { currentPin = currentPin.slice(0, -1); }
             else if(currentPin.length < 4) { currentPin += key; }
-            
             updatePinDisplay();
             if(currentPin.length === 4) { setTimeout(verifyPin, 150); }
         }
 
         function updatePinDisplay() {
             const dots = document.querySelectorAll('.pin-dot');
-            dots.forEach((dot, index) => {
-                if(index < currentPin.length) dot.classList.add('filled');
-                else dot.classList.remove('filled');
-            });
+            dots.forEach((dot, index) => { if(index < currentPin.length) dot.classList.add('filled'); else dot.classList.remove('filled'); });
         }
 
         window.verifyPin = function() {
             let saved = localStorage.getItem('pragati_pin');
             if(btoa(currentPin) === saved) {
-                document.getElementById('pin-lock-screen').style.display = 'none';
-                document.getElementById('app-content').classList.add('unlocked');
+                document.getElementById('pin-lock-screen').style.display = 'none'; document.getElementById('app-content').classList.add('unlocked');
                 currentPin = ''; updatePinDisplay();
-            } else {
-                showToast("Incorrect PIN!", "error");
-                currentPin = ''; updatePinDisplay();
-            }
+            } else { showToast("Incorrect PIN!", "error"); currentPin = ''; updatePinDisplay(); }
         }
         // ------------------------------------
 
-        function getLocalISODate() {
-            const tzOffset = (new Date()).getTimezoneOffset() * 60000;
-            return (new Date(Date.now() - tzOffset)).toISOString().slice(0, 10);
-        }
-
+        function getLocalISODate() { const tzOffset = (new Date()).getTimezoneOffset() * 60000; return (new Date(Date.now() - tzOffset)).toISOString().slice(0, 10); }
         function getLocalTime() { return new Date().toTimeString().slice(0,5); }
 
-        function save() {
-            window.data.lastUpdated = Date.now();
+        function saveLocal() {
             localStorage.setItem('pragati_data', JSON.stringify(window.data));
-            saveToCloud();
             renderAll();
         }
 
-        function saveToCloud() {
-            if (userDocRef && isOnline && setDoc) {
-                setDoc(userDocRef, { data: window.data }, { merge: true })
-                .catch(e => console.log("Sync Error", e));
-            }
+        function generateId() { return Date.now().toString() + Math.random().toString(36).substr(2, 5); }
+
+        // পুরনো ডেটাকে নতুন Sub-collection উপযোগী করার জন্য Migration ফাংশন
+        function migrateLocalDataToIDs() {
+            let changed = false;
+            const modules = ['accounts', 'transactions', 'office', 'business', 'debt', 'loans', 'dps'];
+            modules.forEach(mod => {
+                if(window.data[mod]) {
+                    window.data[mod].forEach(item => {
+                        if(!item.id) { item.id = generateId(); changed = true; }
+                    });
+                }
+            });
+            if(changed) saveLocal();
         }
 
-        // 🌟 Auto-Sync Trigger System 🌟
         window.updateNetworkStatus = function() {
-            try {
-                const dot = document.getElementById('status-dot');
-                const txt = document.getElementById('status-text');
-                const wasOffline = !isOnline;
-                isOnline = navigator.onLine;
-                
-                if(dot && txt) {
-                    if(isOnline) {
-                        dot.className = "status-dot online-dot"; 
-                        txt.innerText = "Online - Synced"; 
-                        
-                        // ইন্টারনেট আসলে অটো সিঙ্ক করবে!
-                        if(wasOffline && userDocRef) {
-                            showToast("Internet restored! Syncing data...", "info");
-                            saveToCloud();
-                        }
-                    } else {
-                        dot.className = "status-dot offline-dot"; 
-                        txt.innerText = "Offline - Local Save"; 
-                    }
+            const dot = document.getElementById('status-dot');
+            const txt = document.getElementById('status-text');
+            const wasOffline = !isOnline;
+            isOnline = navigator.onLine;
+            
+            if(dot && txt) {
+                if(isOnline) {
+                    dot.className = "status-dot online-dot"; txt.innerText = "Online - Synced"; 
+                    if(wasOffline && auth && auth.currentUser) showToast("Internet restored! Syncing data...", "info");
+                } else {
+                    dot.className = "status-dot offline-dot"; txt.innerText = "Offline - Local Save"; 
                 }
-                
-                if(isOnline && window.expenseChartInst) {
-                    const fallback = document.getElementById('chart-fallback');
-                    const chartCanvas = document.getElementById('expenseChart');
-                    if(fallback && fallback.style.display === 'block') {
-                       fallback.style.display = 'none';
-                       if(chartCanvas) chartCanvas.style.display = 'block';
-                    }
-                }
-            } catch (err) {
-                console.error("Network status error:", err);
             }
         };
 
         window.addEventListener('online', window.updateNetworkStatus);
         window.addEventListener('offline', window.updateNetworkStatus);
+        window.toggleMenu = function() { document.querySelector('.sidebar').classList.toggle('active-mobile'); document.querySelector('.sidebar-overlay').classList.toggle('active'); }
+        window.showModule = function(id) { document.querySelectorAll('.module-view').forEach(m => m.classList.remove('active')); document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active')); document.getElementById(id).classList.add('active'); event.currentTarget.classList.add('active'); if(window.innerWidth <= 768) toggleMenu(); }
+        window.updateCategories = function() { const type = document.getElementById('t-type').value; document.getElementById('t-category').innerHTML = (type === 'income' ? incomeCats : expenseCats).map(c => `<option value="${c}">${c}</option>`).join(''); }
 
-        window.toggleMenu = function() {
-            document.querySelector('.sidebar').classList.toggle('active-mobile');
-            document.querySelector('.sidebar-overlay').classList.toggle('active');
-        }
-
-        window.showModule = function(id) {
-            document.querySelectorAll('.module-view').forEach(m => m.classList.remove('active'));
-            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            event.currentTarget.classList.add('active');
-            if(window.innerWidth <= 768) toggleMenu();
-        }
-
-        window.updateCategories = function() {
-            const type = document.getElementById('t-type').value;
-            document.getElementById('t-category').innerHTML = (type === 'income' ? incomeCats : expenseCats).map(c => `<option value="${c}">${c}</option>`).join('');
-        }
-
+        // --- Firebase Sub-Collection Update Logic ---
+        
         window.saveBudget = function() {
             window.data.budget.type = document.getElementById('budget-type').value;
             window.data.budget.amount = Number(document.getElementById('budget-amt').value) || 0;
-            save(); showToast("Budget Saved!", "success");
+            saveLocal();
+            if(auth && auth.currentUser) setDoc(doc(db, "pragati_users", auth.currentUser.uid, "settings", "profile"), { budget: window.data.budget }, { merge: true });
+            showToast("Budget Saved!", "success");
+        }
+
+        window.saveProfile = function() { 
+            window.data.profile.name = document.getElementById('set-name').value; 
+            window.data.profile.biz = document.getElementById('set-biz').value; 
+            window.data.profile.loc = document.getElementById('set-loc').value; 
+            saveLocal(); 
+            if(auth && auth.currentUser) setDoc(doc(db, "pragati_users", auth.currentUser.uid, "settings", "profile"), { profile: window.data.profile }, { merge: true });
+            showToast("Profile Updated!", "success"); 
         }
 
         window.saveAccount = function() {
             let n = document.getElementById('acc-name').value;
             let b = Number(document.getElementById('acc-bal').value) || 0;
             if(!n) return showToast("Enter account name!", "error");
-            window.data.accounts.push({ name: n, balance: b });
+
+            let id = generateId();
+            let obj = { id, name: n, balance: b };
+            window.data.accounts.push(obj);
+
             document.getElementById('acc-name').value = ''; document.getElementById('acc-bal').value = '';
-            save(); showToast("Account Added!", "success");
+            saveLocal(); 
+            if(auth && auth.currentUser) setDoc(doc(db, "pragati_users", auth.currentUser.uid, "accounts", id), obj);
+            showToast("Account Added!", "success");
         }
 
-        window.deleteAccount = function(i) {
-            showConfirm("Delete this account?", () => { window.data.accounts.splice(i,1); save(); showToast("Deleted", "success"); });
+        window.deleteAccount = function(id) {
+            showConfirm("Delete this account?", () => { 
+                let index = window.data.accounts.findIndex(a => a.id === id);
+                if(index > -1) {
+                    window.data.accounts.splice(index, 1); 
+                    saveLocal(); 
+                    if(auth && auth.currentUser) deleteDoc(doc(db, "pragati_users", auth.currentUser.uid, "accounts", id));
+                    showToast("Deleted", "success"); 
+                }
+            });
         }
 
         window.saveTransaction = function() {
             let d = document.getElementById('t-date').value, tm = document.getElementById('t-time').value;
             let ty = document.getElementById('t-type').value, acc = document.getElementById('t-account').value;
             let cat = document.getElementById('t-category').value, amt = Number(document.getElementById('t-amt').value);
-            let desc = document.getElementById('t-desc').value, idx = document.getElementById('t-edit-idx').value;
-
+            let desc = document.getElementById('t-desc').value;
+            let id = document.getElementById('t-edit-idx').value;
+            
             if(!d || !acc || !amt) return showToast("Fill required fields!", "error");
+
+            let isEdit = id !== "-1";
+            if(!isEdit) id = generateId();
 
             let accIdx = window.data.accounts.findIndex(a => a.name === acc);
             if(accIdx > -1) {
-                if(idx > -1) {
-                    let oldT = window.data.transactions[idx];
-                    let oldAccIdx = window.data.accounts.findIndex(a => a.name === oldT.acc);
-                    if(oldAccIdx > -1) window.data.accounts[oldAccIdx].balance += (oldT.type === 'expense' ? oldT.amt : -oldT.amt);
+                let accountObj = window.data.accounts[accIdx];
+                if(isEdit) {
+                    let oldT = window.data.transactions.find(t => t.id === id);
+                    if(oldT) {
+                        let oldAccIdx = window.data.accounts.findIndex(a => a.name === oldT.acc);
+                        if(oldAccIdx > -1) {
+                            window.data.accounts[oldAccIdx].balance += (oldT.type === 'expense' ? oldT.amt : -oldT.amt);
+                            if(auth && auth.currentUser) setDoc(doc(db, "pragati_users", auth.currentUser.uid, "accounts", window.data.accounts[oldAccIdx].id), window.data.accounts[oldAccIdx]);
+                        }
+                    }
                 }
-                window.data.accounts[accIdx].balance += (ty === 'income' ? amt : -amt);
+                accountObj.balance += (ty === 'income' ? amt : -amt);
+                if(auth && auth.currentUser) setDoc(doc(db, "pragati_users", auth.currentUser.uid, "accounts", accountObj.id), accountObj);
             }
 
-            let tObj = { date: d, time: tm, type: ty, acc, cat, amt, desc };
-            if(idx > -1) { window.data.transactions[idx] = tObj; document.getElementById('t-edit-idx').value = "-1"; document.getElementById('t-btn').innerText = "Save Transaction"; document.getElementById('t-cancel-btn').style.display = "none"; showToast("Updated", "success");}
+            let tObj = { id, date: d, time: tm, type: ty, acc, cat, amt, desc };
+            
+            if(isEdit) { 
+                let idx = window.data.transactions.findIndex(t => t.id === id);
+                if(idx > -1) window.data.transactions[idx] = tObj; 
+                document.getElementById('t-edit-idx').value = "-1"; document.getElementById('t-btn').innerText = "Save Transaction"; document.getElementById('t-cancel-btn').style.display = "none"; showToast("Updated", "success");
+            }
             else { window.data.transactions.push(tObj); showToast("Saved", "success");}
 
-            document.getElementById('t-amt').value = ''; document.getElementById('t-desc').value = ''; save();
+            document.getElementById('t-amt').value = ''; document.getElementById('t-desc').value = ''; 
+            saveLocal();
+            if(auth && auth.currentUser) setDoc(doc(db, "pragati_users", auth.currentUser.uid, "transactions", id), tObj);
         }
 
         window.cancelEdit = function(prefix) {
@@ -643,41 +640,64 @@
             document.querySelectorAll(`#${prefix} input[type="text"], #${prefix} input[type="number"]`).forEach(i => i.value = '');
         }
 
-        window.editTransaction = function(i) {
-            let t = window.data.transactions[i];
+        window.editTransaction = function(id) {
+            let t = window.data.transactions.find(item => item.id === id);
+            if(!t) return;
             document.getElementById('t-date').value = t.date; document.getElementById('t-time').value = t.time; document.getElementById('t-type').value = t.type;
             updateCategories();
             document.getElementById('t-account').value = t.acc; document.getElementById('t-category').value = t.cat;
-            document.getElementById('t-amt').value = t.amt; document.getElementById('t-desc').value = t.desc; document.getElementById('t-edit-idx').value = i;
+            document.getElementById('t-amt').value = t.amt; document.getElementById('t-desc').value = t.desc; document.getElementById('t-edit-idx').value = id;
             document.getElementById('t-btn').innerText = "Update Transaction"; document.getElementById('t-cancel-btn').style.display = "block"; showModule('transactions');
         }
 
-        window.deleteTransaction = function(i) {
+        window.deleteTransaction = function(id) {
             showConfirm("Delete transaction?", () => {
-                let t = window.data.transactions[i];
-                let accIdx = window.data.accounts.findIndex(a => a.name === t.acc);
-                if(accIdx > -1) window.data.accounts[accIdx].balance += (t.type === 'expense' ? t.amt : -t.amt);
-                window.data.transactions.splice(i,1); save(); showToast("Deleted", "success");
+                let index = window.data.transactions.findIndex(t => t.id === id);
+                if(index > -1) {
+                    let t = window.data.transactions[index];
+                    let accIdx = window.data.accounts.findIndex(a => a.name === t.acc);
+                    if(accIdx > -1) {
+                        window.data.accounts[accIdx].balance += (t.type === 'expense' ? t.amt : -t.amt);
+                        if(auth && auth.currentUser) setDoc(doc(db, "pragati_users", auth.currentUser.uid, "accounts", window.data.accounts[accIdx].id), window.data.accounts[accIdx]);
+                    }
+                    window.data.transactions.splice(index, 1); 
+                    saveLocal(); 
+                    if(auth && auth.currentUser) deleteDoc(doc(db, "pragati_users", auth.currentUser.uid, "transactions", id));
+                    showToast("Deleted", "success");
+                }
             });
         }
 
         window.saveData = function(mod) {
             let obj = {};
             let prefix = mod === 'office' ? 'off' : mod === 'business' ? 'b' : mod === 'debt' ? 'd' : mod === 'loans' ? 'l' : 'dps';
-            let idx = document.getElementById(prefix + '-edit-idx').value;
+            let id = document.getElementById(prefix + '-edit-idx').value;
+            let isEdit = id !== "-1";
+            if(!isEdit) id = generateId();
 
             if(mod === 'office') obj = { date: document.getElementById('off-date').value, time: document.getElementById('off-time').value, desc: document.getElementById('off-desc').value, total: Number(document.getElementById('off-total').value), adv: Number(document.getElementById('off-adv').value) };
             if(mod === 'business') obj = { date: document.getElementById('b-date').value, time: document.getElementById('b-time').value, item: document.getElementById('b-item').value, qty: Number(document.getElementById('b-qty').value), price: Number(document.getElementById('b-price').value) };
             if(mod === 'debt') obj = { date: document.getElementById('d-date').value, time: document.getElementById('d-time').value, name: document.getElementById('d-name').value, amt: Number(document.getElementById('d-amt').value), type: document.getElementById('d-type').value };
             if(mod === 'loans' || mod === 'dps') { obj = { date: document.getElementById(prefix+'-date').value, time: document.getElementById(prefix+'-time').value, name: document.getElementById(prefix+'-name').value, target: Number(document.getElementById(prefix+'-target').value), cycle: document.getElementById(prefix+'-cycle').value, instAmt: Number(document.getElementById(prefix+'-inst-amt').value), paidCount: Number(document.getElementById(prefix+'-paid-count').value) }; }
 
-            if(idx > -1) { window.data[mod][idx] = obj; document.getElementById(prefix+'-edit-idx').value = "-1"; document.getElementById(prefix+'-btn').innerText = "Add Record"; document.getElementById(prefix+'-cancel-btn').style.display="none"; showToast("Updated", "success");}
-            else { window.data[mod].push(obj); showToast("Saved", "success");}
-            save(); cancelEdit(prefix);
+            obj.id = id;
+
+            if(isEdit) { 
+                let idx = window.data[mod].findIndex(item => item.id === id);
+                if(idx > -1) window.data[mod][idx] = obj; 
+                document.getElementById(prefix+'-edit-idx').value = "-1"; document.getElementById(prefix+'-btn').innerText = "Add Record"; document.getElementById(prefix+'-cancel-btn').style.display="none"; showToast("Updated", "success");
+            } else { 
+                window.data[mod].push(obj); showToast("Saved", "success");
+            }
+            
+            saveLocal(); 
+            if(auth && auth.currentUser) setDoc(doc(db, "pragati_users", auth.currentUser.uid, mod, id), obj);
+            cancelEdit(prefix);
         }
 
-        window.editData = function(mod, i) {
-            let obj = window.data[mod][i];
+        window.editData = function(mod, id) {
+            let obj = window.data[mod].find(item => item.id === id);
+            if(!obj) return;
             let prefix = mod === 'office' ? 'off' : mod === 'business' ? 'b' : mod === 'debt' ? 'd' : mod === 'loans' ? 'l' : 'dps';
             
             if(mod === 'office') { document.getElementById('off-date').value=obj.date; document.getElementById('off-time').value=obj.time; document.getElementById('off-desc').value=obj.desc; document.getElementById('off-total').value=obj.total; document.getElementById('off-adv').value=obj.adv; }
@@ -685,16 +705,24 @@
             if(mod === 'debt') { document.getElementById('d-date').value=obj.date; document.getElementById('d-time').value=obj.time; document.getElementById('d-name').value=obj.name; document.getElementById('d-amt').value=obj.amt; document.getElementById('d-type').value=obj.type; }
             if(mod === 'loans' || mod === 'dps') { document.getElementById(prefix+'-date').value=obj.date; document.getElementById(prefix+'-time').value=obj.time; document.getElementById(prefix+'-name').value=obj.name; document.getElementById(prefix+'-target').value=obj.target; document.getElementById(prefix+'-cycle').value=obj.cycle; document.getElementById(prefix+'-inst-amt').value=obj.instAmt; document.getElementById(prefix+'-paid-count').value=obj.paidCount; }
 
-            document.getElementById(prefix+'-edit-idx').value = i;
+            document.getElementById(prefix+'-edit-idx').value = id;
             document.getElementById(prefix+'-btn').innerText = "Update Record";
             document.getElementById(prefix+'-cancel-btn').style.display = "block"; showModule(mod);
         }
 
-        window.delData = function(mod, i) { showConfirm("Delete this record?", () => { window.data[mod].splice(i,1); save(); showToast("Deleted", "success"); }); }
+        window.delData = function(mod, id) { 
+            showConfirm("Delete this record?", () => { 
+                let index = window.data[mod].findIndex(item => item.id === id);
+                if(index > -1) {
+                    window.data[mod].splice(index, 1); 
+                    saveLocal(); 
+                    if(auth && auth.currentUser) deleteDoc(doc(db, "pragati_users", auth.currentUser.uid, mod, id));
+                    showToast("Deleted", "success"); 
+                }
+            }); 
+        }
 
-        window.uploadImg = function(e) { let reader = new FileReader(); reader.onload = function(event) { window.data.profile.img = event.target.result; document.getElementById('prof-img').src = event.target.result; save(); showToast("Photo Updated"); }; reader.readAsDataURL(e.target.files[0]); }
-
-        window.saveProfile = function() { window.data.profile.name = document.getElementById('set-name').value; window.data.profile.biz = document.getElementById('set-biz').value; window.data.profile.loc = document.getElementById('set-loc').value; save(); showToast("Profile Updated!", "success"); }
+        window.uploadImg = function(e) { let reader = new FileReader(); reader.onload = function(event) { window.data.profile.img = event.target.result; document.getElementById('prof-img').src = event.target.result; saveLocal(); showToast("Photo Updated"); }; reader.readAsDataURL(e.target.files[0]); }
 
         window.managePin = function(action) {
             if(action === 'set') {
@@ -716,61 +744,43 @@
 
         window.importData = function(e) {
             const reader = new FileReader();
-            reader.onload = (ev) => { window.data = JSON.parse(ev.target.result); save(); location.reload(); };
+            reader.onload = (ev) => { window.data = JSON.parse(ev.target.result); saveLocal(); location.reload(); };
             reader.readAsText(e.target.files[0]);
         }
 
         window.factoryReset = function() {
-            showConfirm("Are you absolutely sure? This will permanently wipe all local and cloud data!", () => {
-                window.data = { accounts: [], transactions: [], office: [], business: [], debt: [], loans: [], dps: [], budget: { type: 'Monthly', amount: 0 }, profile: { name: '', biz: '', loc: '', img: '' }, lastUpdated: Date.now() };
-                localStorage.removeItem('pragati_data');
-                localStorage.removeItem('hisabx_data');
-                localStorage.removeItem('pragati_pin');
-                if(userDocRef && setDoc) {
-                    setDoc(userDocRef, { data: window.data }).then(() => {
-                        showToast("Factory Reset Done!", "success"); setTimeout(() => location.reload(), 1500);
-                    });
-                } else {
-                    showToast("Factory Reset Done!", "success"); setTimeout(() => location.reload(), 1500);
-                }
+            showConfirm("Are you absolutely sure? This will permanently wipe local data!", () => {
+                window.data = { accounts: [], transactions: [], office: [], business: [], debt: [], loans: [], dps: [], budget: { type: 'Monthly', amount: 0 }, profile: { name: '', biz: '', loc: '', img: '' } };
+                localStorage.removeItem('pragati_data'); localStorage.removeItem('hisabx_data'); localStorage.removeItem('pragati_pin');
+                showToast("Local Data Wiped!", "success"); setTimeout(() => location.reload(), 1500);
             });
         }
-
-        window.emailLogin = function() { if(!auth) return showToast("Offline. Firebase not loaded.", "error"); let e = document.getElementById('auth-email').value; let p = document.getElementById('auth-password').value; if(e && p) signInWithEmailAndPassword(auth, e, p).then(()=>showToast("Logged In!", "success")).catch(er=>showToast(er.message, "error")); }
-        window.emailRegister = function() { if(!auth) return showToast("Offline. Firebase not loaded.", "error"); let e = document.getElementById('auth-email').value; let p = document.getElementById('auth-password').value; if(e && p) createUserWithEmailAndPassword(auth, e, p).then(()=>showToast("Registered!", "success")).catch(er=>showToast(er.message, "error")); }
-        window.logout = function() { if(!auth) return showToast("Offline.", "error"); signOut(auth).then(()=>{ showToast("Logged out", "success"); setTimeout(()=>location.reload(), 1000); }); }
 
         function renderAll() {
             document.getElementById('dash-greeting').innerText = window.data.profile.name ? `Hello, ${window.data.profile.name}` : "Welcome to Pragati Ledger";
             document.getElementById('dash-subtitle').innerText = window.data.profile.biz || "";
             if(window.data.profile.img) document.getElementById('prof-img').src = window.data.profile.img;
-            document.getElementById('set-name').value = window.data.profile.name;
-            document.getElementById('set-biz').value = window.data.profile.biz;
-            document.getElementById('set-loc').value = window.data.profile.loc;
-            document.getElementById('budget-type').value = window.data.budget.type || 'Monthly';
-            document.getElementById('budget-amt').value = window.data.budget.amount || '';
+            document.getElementById('set-name').value = window.data.profile.name; document.getElementById('set-biz').value = window.data.profile.biz; document.getElementById('set-loc').value = window.data.profile.loc;
+            document.getElementById('budget-type').value = window.data.budget.type || 'Monthly'; document.getElementById('budget-amt').value = window.data.budget.amount || '';
 
             let accHtml = '', accOptions = '<option value="" disabled selected>Select Account</option>', totalAssets = 0;
-            window.data.accounts.forEach((a, i) => {
+            window.data.accounts.forEach((a) => {
                 totalAssets += a.balance;
-                accHtml += `<tr><td>${a.name}</td><td style="color:var(--accent-gold); font-weight:600;">৳${a.balance}</td><td><i class="fas fa-trash del-btn" onclick="deleteAccount(${i})"></i></td></tr>`;
+                accHtml += `<tr><td>${a.name}</td><td style="color:var(--accent-gold); font-weight:600;">৳${a.balance}</td><td><i class="fas fa-trash del-btn" onclick="deleteAccount('${a.id}')"></i></td></tr>`;
                 accOptions += `<option value="${a.name}">${a.name}</option>`;
             });
-            document.getElementById('acc-table').innerHTML = accHtml;
-            document.getElementById('t-account').innerHTML = accOptions;
-            
+            document.getElementById('acc-table').innerHTML = accHtml; document.getElementById('t-account').innerHTML = accOptions;
             document.getElementById('acc-summary-cards').innerHTML = `<div class="card"><div style="font-size:0.85rem; color:var(--text-muted);">Total Assets</div><div class="card-value">৳${totalAssets}</div></div>` + window.data.accounts.map(a => `<div class="card"><div style="font-size:0.85rem; color:var(--text-muted);">${a.name}</div><div class="card-value" style="font-size:1.1rem;">৳${a.balance}</div></div>`).join('');
 
             let tHtml = '', mSpent = 0, catExp = {};
             const currMonth = getLocalISODate().slice(0, 7); 
             
-            window.data.transactions.slice().reverse().forEach((t, index) => {
-                let realIdx = window.data.transactions.length - 1 - index;
+            window.data.transactions.slice().reverse().forEach((t) => {
                 let isExp = t.type === 'expense'; let sign = isExp ? '-' : '+'; let cClass = isExp ? 'danger' : 'success';
                 tHtml += `<tr><td>${t.date}<br><span style="font-size:0.7rem; color:var(--text-muted);">${t.acc}</span></td>
                 <td><span class="badge badge-info">${t.cat}</span><br><span style="font-size:0.7rem;">${t.desc}</span></td>
                 <td style="color:var(--${cClass}); font-weight:600;">${sign}৳${t.amt}</td>
-                <td><div class="action-btns"><i class="fas fa-pen edit-btn" onclick="editTransaction(${realIdx})"></i><i class="fas fa-trash del-btn" onclick="deleteTransaction(${realIdx})"></i></div></td></tr>`;
+                <td><div class="action-btns"><i class="fas fa-pen edit-btn" onclick="editTransaction('${t.id}')"></i><i class="fas fa-trash del-btn" onclick="deleteTransaction('${t.id}')"></i></div></td></tr>`;
                 
                 if(isExp && t.date.startsWith(currMonth)) { mSpent += t.amt; catExp[t.cat] = (catExp[t.cat] || 0) + t.amt; }
             });
@@ -778,39 +788,44 @@
 
             let bAmt = window.data.budget.amount || 0;
             document.getElementById('budget-title-display').innerText = `${window.data.budget.type || 'Monthly'} Budget Status`;
-            document.getElementById('budget-spent-text').innerText = `Spent: ৳${mSpent}`;
-            document.getElementById('budget-total-text').innerText = `Budget: ৳${bAmt}`;
-            let pFill = document.getElementById('budget-prog-fill');
-            let pct = bAmt > 0 ? Math.min((mSpent / bAmt) * 100, 100) : 0;
-            pFill.style.width = pct + '%';
-            pFill.style.background = pct > 90 ? 'var(--danger)' : pct > 75 ? 'var(--warning)' : 'var(--accent-gold)';
+            document.getElementById('budget-spent-text').innerText = `Spent: ৳${mSpent}`; document.getElementById('budget-total-text').innerText = `Budget: ৳${bAmt}`;
+            let pFill = document.getElementById('budget-prog-fill'); let pct = bAmt > 0 ? Math.min((mSpent / bAmt) * 100, 100) : 0;
+            pFill.style.width = pct + '%'; pFill.style.background = pct > 90 ? 'var(--danger)' : pct > 75 ? 'var(--warning)' : 'var(--accent-gold)';
 
-            document.getElementById('off-table').innerHTML = window.data.office.map((o,i)=> `<tr><td>${o.desc}<br><span style="font-size:0.7rem; color:var(--text-muted);">${o.date}</span></td><td>৳${o.total}</td><td style="color:var(--success)">৳${o.adv}</td><td style="color:var(--danger)">৳${o.total - o.adv}</td><td><div class="action-btns"><i class="fas fa-pen edit-btn" onclick="editData('office',${i})"></i><i class="fas fa-trash del-btn" onclick="delData('office',${i})"></i></div></td></tr>`).join('');
-            document.getElementById('b-table').innerHTML = window.data.business.map((b,i)=> `<tr><td>${b.item}<br><span style="font-size:0.7rem; color:var(--text-muted);">${b.date}</span></td><td>${b.qty}</td><td style="color:var(--accent-gold)">৳${b.qty * b.price}</td><td><div class="action-btns"><i class="fas fa-pen edit-btn" onclick="editData('business',${i})"></i><i class="fas fa-trash del-btn" onclick="delData('business',${i})"></i></div></td></tr>`).join('');
-            document.getElementById('d-table').innerHTML = window.data.debt.map((d,i)=> `<tr><td>${d.name}<br><span style="font-size:0.7rem; color:var(--text-muted);">${d.date}</span></td><td><span class="badge ${d.type==='receivable'?'badge-success':'badge-danger'}">${d.type}</span></td><td>৳${d.amt}</td><td><div class="action-btns"><i class="fas fa-pen edit-btn" onclick="editData('debt',${i})"></i><i class="fas fa-trash del-btn" onclick="delData('debt',${i})"></i></div></td></tr>`).join('');
+            document.getElementById('off-table').innerHTML = window.data.office.map((o)=> `<tr><td>${o.desc}<br><span style="font-size:0.7rem; color:var(--text-muted);">${o.date}</span></td><td>৳${o.total}</td><td style="color:var(--success)">৳${o.adv}</td><td style="color:var(--danger)">৳${o.total - o.adv}</td><td><div class="action-btns"><i class="fas fa-pen edit-btn" onclick="editData('office','${o.id}')"></i><i class="fas fa-trash del-btn" onclick="delData('office','${o.id}')"></i></div></td></tr>`).join('');
+            document.getElementById('b-table').innerHTML = window.data.business.map((b)=> `<tr><td>${b.item}<br><span style="font-size:0.7rem; color:var(--text-muted);">${b.date}</span></td><td>${b.qty}</td><td style="color:var(--accent-gold)">৳${b.qty * b.price}</td><td><div class="action-btns"><i class="fas fa-pen edit-btn" onclick="editData('business','${b.id}')"></i><i class="fas fa-trash del-btn" onclick="delData('business','${b.id}')"></i></div></td></tr>`).join('');
+            document.getElementById('d-table').innerHTML = window.data.debt.map((d)=> `<tr><td>${d.name}<br><span style="font-size:0.7rem; color:var(--text-muted);">${d.date}</span></td><td><span class="badge ${d.type==='receivable'?'badge-success':'badge-danger'}">${d.type}</span></td><td>৳${d.amt}</td><td><div class="action-btns"><i class="fas fa-pen edit-btn" onclick="editData('debt','${d.id}')"></i><i class="fas fa-trash del-btn" onclick="delData('debt','${d.id}')"></i></div></td></tr>`).join('');
             
-            const renderLoanDps = (arr, mod) => arr.map((item,i)=> {
+            const renderLoanDps = (arr, mod) => arr.map((item)=> {
                 let saved = item.instAmt * item.paidCount; let pct = item.target > 0 ? (saved / item.target) * 100 : 0;
                 return `<tr><td>${item.name}<br><span class="badge badge-info">${item.cycle}</span></td><td>৳${item.target}</td>
                 <td>৳${saved} (${item.paidCount})<br><div class="prog-bg"><div class="prog-fill" style="width:${pct}%"></div></div></td>
                 <td style="color:var(--danger)">৳${item.target - saved}</td>
-                <td><div class="action-btns"><i class="fas fa-pen edit-btn" onclick="editData('${mod}',${i})"></i><i class="fas fa-trash del-btn" onclick="delData('${mod}',${i})"></i></div></td></tr>`;
+                <td><div class="action-btns"><i class="fas fa-pen edit-btn" onclick="editData('${mod}','${item.id}')"></i><i class="fas fa-trash del-btn" onclick="delData('${mod}','${item.id}')"></i></div></td></tr>`;
             }).join('');
-            document.getElementById('l-table').innerHTML = renderLoanDps(window.data.loans, 'loans');
-            document.getElementById('dps-table').innerHTML = renderLoanDps(window.data.dps, 'dps');
+            document.getElementById('l-table').innerHTML = renderLoanDps(window.data.loans, 'loans'); document.getElementById('dps-table').innerHTML = renderLoanDps(window.data.dps, 'dps');
 
             if(window.expenseChartInst) window.expenseChartInst.destroy();
-            if(!isOnline && typeof Chart === 'undefined') {
-                document.getElementById('expenseChart').style.display = 'none'; document.getElementById('chart-fallback').style.display = 'block';
-            } else if (Object.keys(catExp).length > 0) {
-                document.getElementById('expenseChart').style.display = 'block'; document.getElementById('chart-fallback').style.display = 'none';
-                const ctx = document.getElementById('expenseChart').getContext('2d');
-                window.expenseChartInst = new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(catExp), datasets: [{ data: Object.values(catExp), backgroundColor: ['#D4AF37','#FF5252','#2196F3','#4CAF50','#FFC107','#9C27B0','#00BCD4','#FF9800','#795548'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#fff', font: { size: 10 } } } }, cutout: '70%' } });
-            }
+            if(!isOnline && typeof Chart === 'undefined') { document.getElementById('expenseChart').style.display = 'none'; document.getElementById('chart-fallback').style.display = 'block'; } 
+            else if (Object.keys(catExp).length > 0) { document.getElementById('expenseChart').style.display = 'block'; document.getElementById('chart-fallback').style.display = 'none'; const ctx = document.getElementById('expenseChart').getContext('2d'); window.expenseChartInst = new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(catExp), datasets: [{ data: Object.values(catExp), backgroundColor: ['#D4AF37','#FF5252','#2196F3','#4CAF50','#FFC107','#9C27B0','#00BCD4','#FF9800','#795548'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#fff', font: { size: 10 } } } }, cutout: '70%' } }); }
+        }
+
+        window.emailLogin = function() { if(!auth) return showToast("Offline.", "error"); let e = document.getElementById('auth-email').value; let p = document.getElementById('auth-password').value; if(e && p) signInWithEmailAndPassword(auth, e, p).then(()=>showToast("Logged In!", "success")).catch(er=>showToast(er.message, "error")); }
+        window.emailRegister = function() { if(!auth) return showToast("Offline.", "error"); let e = document.getElementById('auth-email').value; let p = document.getElementById('auth-password').value; if(e && p) createUserWithEmailAndPassword(auth, e, p).then(()=>showToast("Registered!", "success")).catch(er=>showToast(er.message, "error")); }
+        window.logout = function() { if(!auth) return; signOut(auth).then(()=>{ showToast("Logged out", "success"); setTimeout(()=>location.reload(), 1000); }); }
+
+        // Initial Data Upload for New Logins
+        async function pushLocalDataToFirebase(uid) {
+            if(localStorage.getItem('synced_to_cloud_' + uid)) return;
+            try {
+                setDoc(doc(db, "pragati_users", uid, "settings", "profile"), { profile: window.data.profile, budget: window.data.budget }, { merge: true });
+                const modules = ['accounts', 'transactions', 'office', 'business', 'debt', 'loans', 'dps'];
+                for(let mod of modules) { for(let item of window.data[mod]) { setDoc(doc(db, "pragati_users", uid, mod, item.id), item); } }
+                localStorage.setItem('synced_to_cloud_' + uid, 'true');
+            } catch(e) { console.error("Sync failed", e); }
         }
 
         async function loadFirebase() {
-            if (!navigator.onLine) return; 
             try {
                 const firebaseApp = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
                 const firebaseAuth = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js");
@@ -818,69 +833,57 @@
                 
                 app = firebaseApp.initializeApp(firebaseConfig);
                 auth = firebaseAuth.getAuth(app); 
-                db = firebaseStore.getFirestore(app);
                 
-                signInWithEmailAndPassword = firebaseAuth.signInWithEmailAndPassword; 
-                createUserWithEmailAndPassword = firebaseAuth.createUserWithEmailAndPassword; 
-                signOut = firebaseAuth.signOut; 
-                doc = firebaseStore.doc; 
-                setDoc = firebaseStore.setDoc; 
-                getDoc = firebaseStore.getDoc;
-                onSnapshot = firebaseStore.onSnapshot;
+                // 🌟 Firebase Offline Cache Initialization 🌟
+                db = firebaseStore.initializeFirestore(app, {
+                    localCache: firebaseStore.persistentLocalCache({ tabManager: firebaseStore.persistentSingleTabManager() })
+                });
+                
+                signInWithEmailAndPassword = firebaseAuth.signInWithEmailAndPassword; createUserWithEmailAndPassword = firebaseAuth.createUserWithEmailAndPassword; signOut = firebaseAuth.signOut; 
+                doc = firebaseStore.doc; setDoc = firebaseStore.setDoc; getDoc = firebaseStore.getDoc; onSnapshot = firebaseStore.onSnapshot;
+                collection = firebaseStore.collection; deleteDoc = firebaseStore.deleteDoc;
 
                 firebaseAuth.onAuthStateChanged(auth, (user) => {
                     if (user) {
                         document.getElementById('user-status').textContent = `Logged in: ${user.email}`; 
-                        document.getElementById('login-form-container').style.display = 'none'; 
-                        document.getElementById('logout-btn').style.display = 'inline-block';
-                        userDocRef = doc(db, "pragati_users", user.uid);
+                        document.getElementById('login-form-container').style.display = 'none'; document.getElementById('logout-btn').style.display = 'inline-block';
                         
-                        onSnapshot(userDocRef, (docSnap) => {
-                            if (docSnap.exists() && docSnap.data().data) {
-                                let cloudData = docSnap.data().data;
-                                let cloudTime = cloudData.lastUpdated || 0;
-                                let localTime = window.data.lastUpdated || 0;
-                                
-                                if (cloudTime > localTime) {
-                                    window.data = cloudData;
-                                    localStorage.setItem('pragati_data', JSON.stringify(window.data));
-                                    renderAll();
-                                } else if (localTime > cloudTime) {
-                                    saveToCloud();
-                                }
-                            } else {
-                                saveToCloud();
-                            }
+                        pushLocalDataToFirebase(user.uid);
+
+                        // 🌟 Sub-Collection Listeners 🌟
+                        onSnapshot(doc(db, "pragati_users", user.uid, "settings", "profile"), (snap) => {
+                            if(snap.exists()) { window.data.profile = snap.data().profile || window.data.profile; window.data.budget = snap.data().budget || window.data.budget; renderAll(); }
+                        });
+
+                        const modules = ['accounts', 'transactions', 'office', 'business', 'debt', 'loans', 'dps'];
+                        modules.forEach(mod => {
+                            onSnapshot(collection(db, "pragati_users", user.uid, mod), (snap) => {
+                                let cloudArray = [];
+                                snap.forEach(d => cloudArray.push(d.data()));
+                                window.data[mod] = cloudArray.sort((a,b) => a.id.localeCompare(b.id)); // Sort by ID (Timestamp)
+                                saveLocal(); 
+                            });
                         });
                     } else {
                         document.getElementById('user-status').textContent = "Login/Register to Sync Online"; 
-                        document.getElementById('login-form-container').style.display = 'block'; 
-                        document.getElementById('logout-btn').style.display = 'none'; 
-                        userDocRef = null;
+                        document.getElementById('login-form-container').style.display = 'block'; document.getElementById('logout-btn').style.display = 'none'; 
                     }
-                    renderAll();
                 });
-            } catch(e) { console.log("Offline mode active. Firebase skipped.", e); }
+            } catch(e) { console.log("Firebase skipped (Offline).", e); }
         }
 
         function initApp() {
-            window.updateNetworkStatus(); 
-            updateCategories();
+            window.updateNetworkStatus(); updateCategories();
             document.getElementById('t-date').value = getLocalISODate(); document.getElementById('t-time').value = getLocalTime(); document.getElementById('off-date').value = getLocalISODate(); document.getElementById('off-time').value = getLocalTime(); document.getElementById('b-date').value = getLocalISODate(); document.getElementById('b-time').value = getLocalTime(); document.getElementById('d-date').value = getLocalISODate(); document.getElementById('d-time').value = getLocalTime(); document.getElementById('l-date').value = getLocalISODate(); document.getElementById('l-time').value = getLocalTime(); document.getElementById('dps-date').value = getLocalISODate(); document.getElementById('dps-time').value = getLocalTime();
 
             if(localStorage.getItem('pragati_data')) { window.data = JSON.parse(localStorage.getItem('pragati_data')); } 
-            else if (localStorage.getItem('hisabx_data')) { window.data = JSON.parse(localStorage.getItem('hisabx_data')); localStorage.setItem('pragati_data', JSON.stringify(window.data)); }
+            else if (localStorage.getItem('hisabx_data')) { window.data = JSON.parse(localStorage.getItem('hisabx_data')); }
             
-            if(!window.data.lastUpdated) window.data.lastUpdated = Date.now();
+            migrateLocalDataToIDs(); // Add IDs to old data
             renderAll();
             
-            if(localStorage.getItem('pragati_pin')) { 
-                document.getElementById('pin-lock-screen').style.display = 'flex'; 
-                document.getElementById('app-content').classList.remove('unlocked');
-            } else { 
-                document.getElementById('pin-lock-screen').style.display = 'none';
-                document.getElementById('app-content').classList.add('unlocked'); 
-            }
+            if(localStorage.getItem('pragati_pin')) { document.getElementById('pin-lock-screen').style.display = 'flex'; document.getElementById('app-content').classList.remove('unlocked'); } 
+            else { document.getElementById('pin-lock-screen').style.display = 'none'; document.getElementById('app-content').classList.add('unlocked'); }
 
             loadFirebase();
         }
