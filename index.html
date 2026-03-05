@@ -25,9 +25,18 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
         body { background: var(--bg-primary); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
 
+        /* Modern Pin Screen with Numpad */
         #pin-lock-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: var(--bg-primary); z-index: 99999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .pin-input { font-size: 2rem; letter-spacing: 15px; text-align: center; width: 200px; padding: 10px; border: 2px solid var(--accent-gold); border-radius: 10px; background: transparent; color: var(--text-main); outline: none; margin-bottom: 20px;}
-        
+        .login-logo { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent-gold); object-fit: cover; margin-bottom: 25px; box-shadow: var(--gold-glow); background: #111; }
+        .pin-display { display: flex; gap: 15px; margin-bottom: 30px; }
+        .pin-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--accent-gold); background: transparent; transition: 0.2s; }
+        .pin-dot.filled { background: var(--accent-gold); box-shadow: 0 0 10px var(--accent-gold); }
+        .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 280px; }
+        .num-key { width: 65px; height: 65px; border-radius: 50%; background: #111; border: 1px solid #333; color: white; font-size: 1.5rem; font-weight: 500; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; user-select: none; }
+        .num-key:active { background: var(--accent-gold); color: #000; border-color: var(--accent-gold); transform: scale(0.95); }
+        .num-key.action { background: transparent; border-color: transparent; color: var(--text-muted); font-size: 1.2rem; }
+        .num-key.action:active { color: var(--danger); transform: scale(0.95); }
+
         #app-content { display: none; width: 100%; height: 100%; }
         #app-content.unlocked { display: flex; }
 
@@ -86,6 +95,17 @@
         .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; }
         .sidebar-overlay.active { display: block; }
 
+        /* Modern Toast Notification & Modal */
+        #toast-container { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 100000; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background: #222; color: #fff; padding: 12px 24px; border-radius: 8px; border-left: 4px solid var(--accent-gold); box-shadow: 0 4px 15px rgba(0,0,0,0.6); animation: slideUp 0.3s ease forwards; display: flex; align-items: center; gap: 12px; font-size: 0.9rem; font-weight: 500;}
+        .toast.error { border-left-color: var(--danger); }
+        .toast.success { border-left-color: var(--success); }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(20px); } }
+
+        #custom-confirm { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 100001; display: none; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
+        .confirm-box { background: var(--bg-secondary); border: 1px solid rgba(212, 175, 55, 0.3); padding: 25px; border-radius: 12px; box-shadow: var(--gold-glow); width: 90%; max-width: 320px; text-align: center; }
+
         @media (max-width: 768px) { 
             .sidebar { position: fixed; left: -280px; top: 0; height: 100vh; transition: left 0.3s ease; box-shadow: 2px 0 15px rgba(0,0,0,0.8); }
             .sidebar.active-mobile { left: 0; }
@@ -99,12 +119,44 @@
 </head>
 <body>
 
+    <div id="toast-container"></div>
+
+    <div id="custom-confirm">
+        <div class="confirm-box">
+            <h3 id="confirm-msg" style="margin-bottom: 20px; font-size: 1.1rem; font-weight: 500;">Are you sure?</h3>
+            <div style="display: flex; gap: 15px; justify-content: center;">
+                <button class="btn-gold btn-danger-outline" id="confirm-no" style="margin-top:0;">Cancel</button>
+                <button class="btn-gold" id="confirm-yes" style="margin-top:0;">Yes, Delete</button>
+            </div>
+        </div>
+    </div>
+
     <div id="pin-lock-screen">
-        <i class="fas fa-lock" style="font-size: 3rem; color: var(--accent-gold); margin-bottom: 15px;"></i>
-        <h2 style="color:var(--accent-gold); margin-bottom:20px;">Enter App PIN</h2>
-        <input type="password" id="login-pin-input" class="pin-input" inputmode="numeric" maxlength="4" placeholder="••••">
-        <button class="btn-gold" onclick="verifyPin()" style="width:200px;">Unlock</button>
-        <p id="pin-error" style="color:var(--danger); margin-top:10px; display:none;">Incorrect PIN!</p>
+        <img src="Paragati IT Logo_Dark.png" alt="Logo" class="login-logo" onerror="this.src='https://via.placeholder.com/110?text=Logo'">
+        
+        <h2 style="color:var(--accent-gold); margin-bottom:20px; font-weight: 500;">Enter PIN</h2>
+        
+        <div class="pin-display">
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+        </div>
+
+        <div class="numpad">
+            <div class="num-key" onclick="pressKey(1)">1</div>
+            <div class="num-key" onclick="pressKey(2)">2</div>
+            <div class="num-key" onclick="pressKey(3)">3</div>
+            <div class="num-key" onclick="pressKey(4)">4</div>
+            <div class="num-key" onclick="pressKey(5)">5</div>
+            <div class="num-key" onclick="pressKey(6)">6</div>
+            <div class="num-key" onclick="pressKey(7)">7</div>
+            <div class="num-key" onclick="pressKey(8)">8</div>
+            <div class="num-key" onclick="pressKey(9)">9</div>
+            <div class="num-key action" onclick="pressKey('clear')">C</div>
+            <div class="num-key" onclick="pressKey(0)">0</div>
+            <div class="num-key action" onclick="pressKey('back')"><i class="fas fa-backspace"></i></div>
+        </div>
     </div>
 
     <div id="app-content">
@@ -344,7 +396,7 @@
                 <div class="glass-box" style="border-color: var(--warning);">
                     <h3><i class="fas fa-lock"></i> App Lock (PIN)</h3>
                     <div class="input-row">
-                        <input type="password" id="new-pin-input" placeholder="Enter 4-digit PIN" inputmode="numeric" maxlength="4">
+                        <input type="password" id="new-pin-input" placeholder="Enter new 4-digit PIN" inputmode="numeric" maxlength="4">
                         <button class="btn-gold" style="margin-top:0;" onclick="managePin('set')">Set / Change</button>
                     </div>
                     <button class="btn-gold btn-outline" style="color:var(--danger); border-color:var(--danger); margin-top:10px;" onclick="managePin('remove')">Remove PIN</button>
@@ -384,14 +436,15 @@
         let userDocRef = null;
         let isOnline = navigator.onLine;
 
-        // *** SECURITY FIX: Add your config here, do not share publicly ***
+        // Firebase Config
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyBrOuU7XEj6iOtN2QhgPnqiEIfyOJ9rINw",
+            authDomain: "pragati-it.firebaseapp.com",
+            projectId: "pragati-it",
+            storageBucket: "pragati-it.firebasestorage.app",
+            messagingSenderId: "862683484950",
+            appId: "1:862683484950:web:f6aa1b26a6634e57b27637",
+            measurementId: "G-XL2CLE65VN"
         };
 
         window.data = {
@@ -403,15 +456,74 @@
         const incomeCats = ["Business Sale", "Freelance", "Salary", "Loan Received", "Other Income"];
         const expenseCats = ["Marketing", "Server/Domain", "Office Rent", "Utility Bills", "Equipments", "Food", "Transport", "Personal", "Other Expense"];
 
+        // --- Custom Toast & Confirm Modal ---
+        window.showToast = function(msg, type='success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${msg}`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'fadeOut 0.3s ease forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        window.showConfirm = function(msg, callback) {
+            document.getElementById('confirm-msg').innerText = msg;
+            const modal = document.getElementById('custom-confirm');
+            modal.style.display = 'flex';
+            
+            const yesBtn = document.getElementById('confirm-yes');
+            const noBtn = document.getElementById('confirm-no');
+            
+            const newYesBtn = yesBtn.cloneNode(true);
+            const newNoBtn = noBtn.cloneNode(true);
+            yesBtn.parentNode.replaceChild(newYesBtn, yesBtn);
+            noBtn.parentNode.replaceChild(newNoBtn, noBtn);
+            
+            newYesBtn.onclick = () => { modal.style.display = 'none'; callback(); };
+            newNoBtn.onclick = () => { modal.style.display = 'none'; };
+        }
+
+        // --- Custom PIN Keyboard Logic ---
+        let currentPin = '';
+        window.pressKey = function(key) {
+            if(key === 'clear') { currentPin = ''; }
+            else if(key === 'back') { currentPin = currentPin.slice(0, -1); }
+            else if(currentPin.length < 4) { currentPin += key; }
+            
+            updatePinDisplay();
+            if(currentPin.length === 4) { setTimeout(verifyPin, 150); }
+        }
+
+        function updatePinDisplay() {
+            const dots = document.querySelectorAll('.pin-dot');
+            dots.forEach((dot, index) => {
+                if(index < currentPin.length) dot.classList.add('filled');
+                else dot.classList.remove('filled');
+            });
+        }
+
+        window.verifyPin = function() {
+            let saved = localStorage.getItem('pragati_pin');
+            if(btoa(currentPin) === saved) {
+                document.getElementById('pin-lock-screen').style.display = 'none';
+                document.getElementById('app-content').classList.add('unlocked');
+                currentPin = ''; updatePinDisplay();
+            } else {
+                showToast("Incorrect PIN!", "error");
+                currentPin = ''; updatePinDisplay();
+            }
+        }
+        // ------------------------------------
+
         function getLocalISODate() {
             const tzOffset = (new Date()).getTimezoneOffset() * 60000;
             return (new Date(Date.now() - tzOffset)).toISOString().slice(0, 10);
         }
 
-        function getLocalTime() {
-            const now = new Date();
-            return now.toTimeString().slice(0,5);
-        }
+        function getLocalTime() { return new Date().toTimeString().slice(0,5); }
 
         function save() {
             localStorage.setItem('pragati_data', JSON.stringify(window.data));
@@ -425,17 +537,13 @@
             const dot = document.getElementById('status-dot');
             const txt = document.getElementById('status-text');
             if(navigator.onLine) {
-                dot.className = "status-dot online-dot";
-                txt.textContent = "Online - Synced";
-                isOnline = true;
+                dot.className = "status-dot online-dot"; txt.textContent = "Online - Synced"; isOnline = true;
                 if(window.expenseChartInst && document.getElementById('chart-fallback').style.display === 'block') {
                    document.getElementById('chart-fallback').style.display = 'none';
                    document.getElementById('expenseChart').style.display = 'block';
                 }
             } else {
-                dot.className = "status-dot offline-dot";
-                txt.textContent = "Offline - Local Save";
-                isOnline = false;
+                dot.className = "status-dot offline-dot"; txt.textContent = "Offline - Local Save"; isOnline = false;
             }
         }
         window.addEventListener('online', updateNetworkStatus);
@@ -456,41 +564,35 @@
 
         window.updateCategories = function() {
             const type = document.getElementById('t-type').value;
-            const catSelect = document.getElementById('t-category');
-            catSelect.innerHTML = (type === 'income' ? incomeCats : expenseCats).map(c => `<option value="${c}">${c}</option>`).join('');
+            document.getElementById('t-category').innerHTML = (type === 'income' ? incomeCats : expenseCats).map(c => `<option value="${c}">${c}</option>`).join('');
         }
 
         window.saveBudget = function() {
             window.data.budget.type = document.getElementById('budget-type').value;
             window.data.budget.amount = Number(document.getElementById('budget-amt').value) || 0;
-            save(); alert("Budget Saved!");
+            save(); showToast("Budget Saved!", "success");
         }
 
         window.saveAccount = function() {
             let n = document.getElementById('acc-name').value;
             let b = Number(document.getElementById('acc-bal').value) || 0;
-            if(!n) return alert("Enter account name!");
+            if(!n) return showToast("Enter account name!", "error");
             window.data.accounts.push({ name: n, balance: b });
-            document.getElementById('acc-name').value = '';
-            document.getElementById('acc-bal').value = '';
-            save();
+            document.getElementById('acc-name').value = ''; document.getElementById('acc-bal').value = '';
+            save(); showToast("Account Added!", "success");
         }
 
         window.deleteAccount = function(i) {
-            if(confirm("Delete this account?")) { window.data.accounts.splice(i,1); save(); }
+            showConfirm("Delete this account?", () => { window.data.accounts.splice(i,1); save(); showToast("Deleted", "success"); });
         }
 
         window.saveTransaction = function() {
-            let d = document.getElementById('t-date').value;
-            let tm = document.getElementById('t-time').value;
-            let ty = document.getElementById('t-type').value;
-            let acc = document.getElementById('t-account').value;
-            let cat = document.getElementById('t-category').value;
-            let amt = Number(document.getElementById('t-amt').value);
-            let desc = document.getElementById('t-desc').value;
-            let idx = document.getElementById('t-edit-idx').value;
+            let d = document.getElementById('t-date').value, tm = document.getElementById('t-time').value;
+            let ty = document.getElementById('t-type').value, acc = document.getElementById('t-account').value;
+            let cat = document.getElementById('t-category').value, amt = Number(document.getElementById('t-amt').value);
+            let desc = document.getElementById('t-desc').value, idx = document.getElementById('t-edit-idx').value;
 
-            if(!d || !acc || !amt) return alert("Fill required fields!");
+            if(!d || !acc || !amt) return showToast("Fill required fields!", "error");
 
             let accIdx = window.data.accounts.findIndex(a => a.name === acc);
             if(accIdx > -1) {
@@ -503,12 +605,10 @@
             }
 
             let tObj = { date: d, time: tm, type: ty, acc, cat, amt, desc };
-            if(idx > -1) { window.data.transactions[idx] = tObj; document.getElementById('t-edit-idx').value = "-1"; document.getElementById('t-btn').innerText = "Save Transaction"; document.getElementById('t-cancel-btn').style.display = "none"; }
-            else window.data.transactions.push(tObj);
+            if(idx > -1) { window.data.transactions[idx] = tObj; document.getElementById('t-edit-idx').value = "-1"; document.getElementById('t-btn').innerText = "Save Transaction"; document.getElementById('t-cancel-btn').style.display = "none"; showToast("Updated", "success");}
+            else { window.data.transactions.push(tObj); showToast("Saved", "success");}
 
-            document.getElementById('t-amt').value = '';
-            document.getElementById('t-desc').value = '';
-            save();
+            document.getElementById('t-amt').value = ''; document.getElementById('t-desc').value = ''; save();
         }
 
         window.cancelEdit = function(prefix) {
@@ -521,27 +621,20 @@
 
         window.editTransaction = function(i) {
             let t = window.data.transactions[i];
-            document.getElementById('t-date').value = t.date;
-            document.getElementById('t-time').value = t.time;
-            document.getElementById('t-type').value = t.type;
+            document.getElementById('t-date').value = t.date; document.getElementById('t-time').value = t.time; document.getElementById('t-type').value = t.type;
             updateCategories();
-            document.getElementById('t-account').value = t.acc;
-            document.getElementById('t-category').value = t.cat;
-            document.getElementById('t-amt').value = t.amt;
-            document.getElementById('t-desc').value = t.desc;
-            document.getElementById('t-edit-idx').value = i;
-            document.getElementById('t-btn').innerText = "Update Transaction";
-            document.getElementById('t-cancel-btn').style.display = "block";
-            showModule('transactions');
+            document.getElementById('t-account').value = t.acc; document.getElementById('t-category').value = t.cat;
+            document.getElementById('t-amt').value = t.amt; document.getElementById('t-desc').value = t.desc; document.getElementById('t-edit-idx').value = i;
+            document.getElementById('t-btn').innerText = "Update Transaction"; document.getElementById('t-cancel-btn').style.display = "block"; showModule('transactions');
         }
 
         window.deleteTransaction = function(i) {
-            if(!confirm("Delete transaction?")) return;
-            let t = window.data.transactions[i];
-            let accIdx = window.data.accounts.findIndex(a => a.name === t.acc);
-            if(accIdx > -1) window.data.accounts[accIdx].balance += (t.type === 'expense' ? t.amt : -t.amt);
-            window.data.transactions.splice(i,1);
-            save();
+            showConfirm("Delete transaction?", () => {
+                let t = window.data.transactions[i];
+                let accIdx = window.data.accounts.findIndex(a => a.name === t.acc);
+                if(accIdx > -1) window.data.accounts[accIdx].balance += (t.type === 'expense' ? t.amt : -t.amt);
+                window.data.transactions.splice(i,1); save(); showToast("Deleted", "success");
+            });
         }
 
         window.saveData = function(mod) {
@@ -552,18 +645,10 @@
             if(mod === 'office') obj = { date: document.getElementById('off-date').value, time: document.getElementById('off-time').value, desc: document.getElementById('off-desc').value, total: Number(document.getElementById('off-total').value), adv: Number(document.getElementById('off-adv').value) };
             if(mod === 'business') obj = { date: document.getElementById('b-date').value, time: document.getElementById('b-time').value, item: document.getElementById('b-item').value, qty: Number(document.getElementById('b-qty').value), price: Number(document.getElementById('b-price').value) };
             if(mod === 'debt') obj = { date: document.getElementById('d-date').value, time: document.getElementById('d-time').value, name: document.getElementById('d-name').value, amt: Number(document.getElementById('d-amt').value), type: document.getElementById('d-type').value };
-            if(mod === 'loans' || mod === 'dps') {
-                obj = {
-                    date: document.getElementById(prefix+'-date').value, time: document.getElementById(prefix+'-time').value,
-                    name: document.getElementById(prefix+'-name').value, target: Number(document.getElementById(prefix+'-target').value),
-                    cycle: document.getElementById(prefix+'-cycle').value, instAmt: Number(document.getElementById(prefix+'-inst-amt').value),
-                    paidCount: Number(document.getElementById(prefix+'-paid-count').value)
-                };
-            }
+            if(mod === 'loans' || mod === 'dps') { obj = { date: document.getElementById(prefix+'-date').value, time: document.getElementById(prefix+'-time').value, name: document.getElementById(prefix+'-name').value, target: Number(document.getElementById(prefix+'-target').value), cycle: document.getElementById(prefix+'-cycle').value, instAmt: Number(document.getElementById(prefix+'-inst-amt').value), paidCount: Number(document.getElementById(prefix+'-paid-count').value) }; }
 
-            if(idx > -1) { window.data[mod][idx] = obj; document.getElementById(prefix+'-edit-idx').value = "-1"; document.getElementById(prefix+'-btn').innerText = "Add Record"; document.getElementById(prefix+'-cancel-btn').style.display="none";}
-            else window.data[mod].push(obj);
-
+            if(idx > -1) { window.data[mod][idx] = obj; document.getElementById(prefix+'-edit-idx').value = "-1"; document.getElementById(prefix+'-btn').innerText = "Add Record"; document.getElementById(prefix+'-cancel-btn').style.display="none"; showToast("Updated", "success");}
+            else { window.data[mod].push(obj); showToast("Saved", "success");}
             save(); cancelEdit(prefix);
         }
 
@@ -578,60 +663,31 @@
 
             document.getElementById(prefix+'-edit-idx').value = i;
             document.getElementById(prefix+'-btn').innerText = "Update Record";
-            document.getElementById(prefix+'-cancel-btn').style.display = "block";
-            showModule(mod);
+            document.getElementById(prefix+'-cancel-btn').style.display = "block"; showModule(mod);
         }
 
-        window.delData = function(mod, i) { if(confirm("Delete this record?")) { window.data[mod].splice(i,1); save(); } }
+        window.delData = function(mod, i) { showConfirm("Delete this record?", () => { window.data[mod].splice(i,1); save(); showToast("Deleted", "success"); }); }
 
-        window.uploadImg = function(e) {
-            let reader = new FileReader();
-            reader.onload = function(event) {
-                window.data.profile.img = event.target.result;
-                document.getElementById('prof-img').src = event.target.result;
-                save();
-            }
-            reader.readAsDataURL(e.target.files[0]);
-        }
+        window.uploadImg = function(e) { let reader = new FileReader(); reader.onload = function(event) { window.data.profile.img = event.target.result; document.getElementById('prof-img').src = event.target.result; save(); showToast("Photo Updated"); }; reader.readAsDataURL(e.target.files[0]); }
 
-        window.saveProfile = function() {
-            window.data.profile.name = document.getElementById('set-name').value;
-            window.data.profile.biz = document.getElementById('set-biz').value;
-            window.data.profile.loc = document.getElementById('set-loc').value;
-            save(); alert("Profile Updated!");
-        }
+        window.saveProfile = function() { window.data.profile.name = document.getElementById('set-name').value; window.data.profile.biz = document.getElementById('set-biz').value; window.data.profile.loc = document.getElementById('set-loc').value; save(); showToast("Profile Updated!", "success"); }
 
         window.managePin = function(action) {
             if(action === 'set') {
                 let p = document.getElementById('new-pin-input').value;
-                if(p.length === 4) { localStorage.setItem('pragati_pin', btoa(p)); alert("PIN Set Successfully!"); document.getElementById('new-pin-input').value=''; }
-                else alert("Enter 4 digits!");
-            } else {
-                localStorage.removeItem('pragati_pin'); alert("PIN Removed!");
-            }
-        }
-
-        window.verifyPin = function() {
-            let p = document.getElementById('login-pin-input').value;
-            let saved = localStorage.getItem('pragati_pin');
-            if(btoa(p) === saved) {
-                document.getElementById('pin-lock-screen').style.display = 'none';
-                document.getElementById('app-content').classList.add('unlocked');
-            } else {
-                document.getElementById('pin-error').style.display = 'block';
-                setTimeout(()=> document.getElementById('pin-error').style.display = 'none', 2000);
-            }
+                if(p.length === 4) { localStorage.setItem('pragati_pin', btoa(p)); showToast("PIN Set Successfully!", "success"); document.getElementById('new-pin-input').value=''; }
+                else showToast("Enter 4 digits!", "error");
+            } else { localStorage.removeItem('pragati_pin'); showToast("PIN Removed!", "success"); }
         }
 
         window.backupData = function() {
             try {
                 const blob = new Blob([JSON.stringify(window.data)], {type: "application/json"});
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
+                const url = URL.createObjectURL(blob); const a = document.createElement('a');
                 a.style.display = 'none'; a.href = url; a.download = "Pragati_Ledger_Backup.json";
                 document.body.appendChild(a); a.click(); document.body.removeChild(a);
-                setTimeout(() => URL.revokeObjectURL(url), 100);
-            } catch (e) { alert("Backup failed"); }
+                setTimeout(() => URL.revokeObjectURL(url), 100); showToast("Backup Created", "success");
+            } catch (e) { showToast("Backup failed", "error"); }
         }
 
         window.importData = function(e) {
@@ -640,9 +696,9 @@
             reader.readAsText(e.target.files[0]);
         }
 
-        window.emailLogin = function() { if(!auth) return alert("You are offline. Firebase is not loaded."); let e = document.getElementById('auth-email').value; let p = document.getElementById('auth-password').value; if(e && p) signInWithEmailAndPassword(auth, e, p).then(()=>alert("Logged In!")).catch(er=>alert(er.message)); }
-        window.emailRegister = function() { if(!auth) return alert("You are offline. Firebase is not loaded."); let e = document.getElementById('auth-email').value; let p = document.getElementById('auth-password').value; if(e && p) createUserWithEmailAndPassword(auth, e, p).then(()=>alert("Registered!")).catch(er=>alert(er.message)); }
-        window.logout = function() { if(!auth) return alert("You are offline."); signOut(auth).then(()=>{ alert("Logged out"); location.reload(); }); }
+        window.emailLogin = function() { if(!auth) return showToast("Offline. Firebase not loaded.", "error"); let e = document.getElementById('auth-email').value; let p = document.getElementById('auth-password').value; if(e && p) signInWithEmailAndPassword(auth, e, p).then(()=>showToast("Logged In!", "success")).catch(er=>showToast(er.message, "error")); }
+        window.emailRegister = function() { if(!auth) return showToast("Offline. Firebase not loaded.", "error"); let e = document.getElementById('auth-email').value; let p = document.getElementById('auth-password').value; if(e && p) createUserWithEmailAndPassword(auth, e, p).then(()=>showToast("Registered!", "success")).catch(er=>showToast(er.message, "error")); }
+        window.logout = function() { if(!auth) return showToast("Offline.", "error"); signOut(auth).then(()=>{ showToast("Logged out", "success"); setTimeout(()=>location.reload(), 1000); }); }
 
         function renderAll() {
             document.getElementById('dash-greeting').innerText = window.data.profile.name ? `Hello, ${window.data.profile.name}` : "Welcome to Pragati Ledger";
@@ -663,27 +719,20 @@
             document.getElementById('acc-table').innerHTML = accHtml;
             document.getElementById('t-account').innerHTML = accOptions;
             
-            document.getElementById('acc-summary-cards').innerHTML = `
-                <div class="card"><div style="font-size:0.85rem; color:var(--text-muted);">Total Assets</div><div class="card-value">৳${totalAssets}</div></div>
-            ` + window.data.accounts.map(a => `<div class="card"><div style="font-size:0.85rem; color:var(--text-muted);">${a.name}</div><div class="card-value" style="font-size:1.1rem;">৳${a.balance}</div></div>`).join('');
+            document.getElementById('acc-summary-cards').innerHTML = `<div class="card"><div style="font-size:0.85rem; color:var(--text-muted);">Total Assets</div><div class="card-value">৳${totalAssets}</div></div>` + window.data.accounts.map(a => `<div class="card"><div style="font-size:0.85rem; color:var(--text-muted);">${a.name}</div><div class="card-value" style="font-size:1.1rem;">৳${a.balance}</div></div>`).join('');
 
             let tHtml = '', mSpent = 0, catExp = {};
             const currMonth = getLocalISODate().slice(0, 7); 
             
             window.data.transactions.slice().reverse().forEach((t, index) => {
                 let realIdx = window.data.transactions.length - 1 - index;
-                let isExp = t.type === 'expense';
-                let sign = isExp ? '-' : '+';
-                let cClass = isExp ? 'danger' : 'success';
+                let isExp = t.type === 'expense'; let sign = isExp ? '-' : '+'; let cClass = isExp ? 'danger' : 'success';
                 tHtml += `<tr><td>${t.date}<br><span style="font-size:0.7rem; color:var(--text-muted);">${t.acc}</span></td>
                 <td><span class="badge badge-info">${t.cat}</span><br><span style="font-size:0.7rem;">${t.desc}</span></td>
                 <td style="color:var(--${cClass}); font-weight:600;">${sign}৳${t.amt}</td>
                 <td><div class="action-btns"><i class="fas fa-pen edit-btn" onclick="editTransaction(${realIdx})"></i><i class="fas fa-trash del-btn" onclick="deleteTransaction(${realIdx})"></i></div></td></tr>`;
                 
-                if(isExp && t.date.startsWith(currMonth)) {
-                    mSpent += t.amt;
-                    catExp[t.cat] = (catExp[t.cat] || 0) + t.amt;
-                }
+                if(isExp && t.date.startsWith(currMonth)) { mSpent += t.amt; catExp[t.cat] = (catExp[t.cat] || 0) + t.amt; }
             });
             document.getElementById('t-table').innerHTML = tHtml;
 
@@ -701,8 +750,7 @@
             document.getElementById('d-table').innerHTML = window.data.debt.map((d,i)=> `<tr><td>${d.name}<br><span style="font-size:0.7rem; color:var(--text-muted);">${d.date}</span></td><td><span class="badge ${d.type==='receivable'?'badge-success':'badge-danger'}">${d.type}</span></td><td>৳${d.amt}</td><td><div class="action-btns"><i class="fas fa-pen edit-btn" onclick="editData('debt',${i})"></i><i class="fas fa-trash del-btn" onclick="delData('debt',${i})"></i></div></td></tr>`).join('');
             
             const renderLoanDps = (arr, mod) => arr.map((item,i)=> {
-                let saved = item.instAmt * item.paidCount;
-                let pct = item.target > 0 ? (saved / item.target) * 100 : 0;
+                let saved = item.instAmt * item.paidCount; let pct = item.target > 0 ? (saved / item.target) * 100 : 0;
                 return `<tr><td>${item.name}<br><span class="badge badge-info">${item.cycle}</span></td><td>৳${item.target}</td>
                 <td>৳${saved} (${item.paidCount})<br><div class="prog-bg"><div class="prog-fill" style="width:${pct}%"></div></div></td>
                 <td style="color:var(--danger)">৳${item.target - saved}</td>
@@ -713,97 +761,47 @@
 
             if(window.expenseChartInst) window.expenseChartInst.destroy();
             if(!isOnline && typeof Chart === 'undefined') {
-                document.getElementById('expenseChart').style.display = 'none';
-                document.getElementById('chart-fallback').style.display = 'block';
+                document.getElementById('expenseChart').style.display = 'none'; document.getElementById('chart-fallback').style.display = 'block';
             } else if (Object.keys(catExp).length > 0) {
-                document.getElementById('expenseChart').style.display = 'block';
-                document.getElementById('chart-fallback').style.display = 'none';
+                document.getElementById('expenseChart').style.display = 'block'; document.getElementById('chart-fallback').style.display = 'none';
                 const ctx = document.getElementById('expenseChart').getContext('2d');
-                window.expenseChartInst = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: { labels: Object.keys(catExp), datasets: [{ data: Object.values(catExp), backgroundColor: ['#D4AF37','#FF5252','#2196F3','#4CAF50','#FFC107','#9C27B0','#00BCD4','#FF9800','#795548'], borderWidth: 0 }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#fff', font: { size: 10 } } } }, cutout: '70%' }
-                });
+                window.expenseChartInst = new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(catExp), datasets: [{ data: Object.values(catExp), backgroundColor: ['#D4AF37','#FF5252','#2196F3','#4CAF50','#FFC107','#9C27B0','#00BCD4','#FF9800','#795548'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#fff', font: { size: 10 } } } }, cutout: '70%' } });
             }
         }
 
         async function loadFirebase() {
             if (!navigator.onLine) return; 
-
             try {
                 const firebaseApp = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
                 const firebaseAuth = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js");
                 const firebaseStore = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-
                 app = firebaseApp.initializeApp(firebaseConfig);
-                auth = firebaseAuth.getAuth(app);
-                db = firebaseStore.getFirestore(app);
-
-                signInWithEmailAndPassword = firebaseAuth.signInWithEmailAndPassword;
-                createUserWithEmailAndPassword = firebaseAuth.createUserWithEmailAndPassword;
-                signOut = firebaseAuth.signOut;
-                doc = firebaseStore.doc;
-                setDoc = firebaseStore.setDoc;
-                getDoc = firebaseStore.getDoc;
+                auth = firebaseAuth.getAuth(app); db = firebaseStore.getFirestore(app);
+                signInWithEmailAndPassword = firebaseAuth.signInWithEmailAndPassword; createUserWithEmailAndPassword = firebaseAuth.createUserWithEmailAndPassword; signOut = firebaseAuth.signOut; doc = firebaseStore.doc; setDoc = firebaseStore.setDoc; getDoc = firebaseStore.getDoc;
 
                 firebaseAuth.onAuthStateChanged(auth, async (user) => {
                     if (user) {
-                        document.getElementById('user-status').textContent = `Logged in: ${user.email}`;
-                        document.getElementById('login-form-container').style.display = 'none';
-                        document.getElementById('logout-btn').style.display = 'inline-block';
+                        document.getElementById('user-status').textContent = `Logged in: ${user.email}`; document.getElementById('login-form-container').style.display = 'none'; document.getElementById('logout-btn').style.display = 'inline-block';
                         userDocRef = doc(db, "pragati_users", user.uid);
-                        
-                        if(isOnline) {
-                            const docSnap = await getDoc(userDocRef);
-                            if(docSnap.exists() && docSnap.data().data && docSnap.data().data.transactions) {
-                                window.data = docSnap.data().data; 
-                                save(); 
-                            } else {
-                                save(); 
-                            }
-                        }
+                        if(isOnline) { const docSnap = await getDoc(userDocRef); if(docSnap.exists() && docSnap.data().data && docSnap.data().data.transactions) { window.data = docSnap.data().data; save(); } else save(); }
                     } else {
-                        document.getElementById('user-status').textContent = "Login/Register to Sync Online";
-                        document.getElementById('login-form-container').style.display = 'block';
-                        document.getElementById('logout-btn').style.display = 'none';
-                        userDocRef = null;
+                        document.getElementById('user-status').textContent = "Login/Register to Sync Online"; document.getElementById('login-form-container').style.display = 'block'; document.getElementById('logout-btn').style.display = 'none'; userDocRef = null;
                     }
                     renderAll();
                 });
-            } catch(e) {
-                console.log("Offline mode active. Firebase skipped.");
-            }
+            } catch(e) { console.log("Offline mode active. Firebase skipped."); }
         }
 
         function initApp() {
             updateNetworkStatus(); updateCategories();
-            document.getElementById('t-date').value = getLocalISODate();
-            document.getElementById('t-time').value = getLocalTime();
-            document.getElementById('off-date').value = getLocalISODate();
-            document.getElementById('off-time').value = getLocalTime();
-            document.getElementById('b-date').value = getLocalISODate();
-            document.getElementById('b-time').value = getLocalTime();
-            document.getElementById('d-date').value = getLocalISODate();
-            document.getElementById('d-time').value = getLocalTime();
-            document.getElementById('l-date').value = getLocalISODate();
-            document.getElementById('l-time').value = getLocalTime();
-            document.getElementById('dps-date').value = getLocalISODate();
-            document.getElementById('dps-time').value = getLocalTime();
+            document.getElementById('t-date').value = getLocalISODate(); document.getElementById('t-time').value = getLocalTime(); document.getElementById('off-date').value = getLocalISODate(); document.getElementById('off-time').value = getLocalTime(); document.getElementById('b-date').value = getLocalISODate(); document.getElementById('b-time').value = getLocalTime(); document.getElementById('d-date').value = getLocalISODate(); document.getElementById('d-time').value = getLocalTime(); document.getElementById('l-date').value = getLocalISODate(); document.getElementById('l-time').value = getLocalTime(); document.getElementById('dps-date').value = getLocalISODate(); document.getElementById('dps-time').value = getLocalTime();
 
-            if(localStorage.getItem('pragati_data')) {
-                window.data = JSON.parse(localStorage.getItem('pragati_data'));
-            } else if (localStorage.getItem('hisabx_data')) {
-                window.data = JSON.parse(localStorage.getItem('hisabx_data'));
-                localStorage.setItem('pragati_data', JSON.stringify(window.data)); 
-            }
+            if(localStorage.getItem('pragati_data')) { window.data = JSON.parse(localStorage.getItem('pragati_data')); } 
+            else if (localStorage.getItem('hisabx_data')) { window.data = JSON.parse(localStorage.getItem('hisabx_data')); localStorage.setItem('pragati_data', JSON.stringify(window.data)); }
             renderAll();
             
-            if(localStorage.getItem('pragati_pin')) {
-                document.getElementById('pin-lock-screen').style.display = 'flex';
-            } else {
-                document.getElementById('app-content').classList.add('unlocked');
-                document.getElementById('pin-lock-screen').style.display = 'none';
-            }
+            if(localStorage.getItem('pragati_pin')) { document.getElementById('pin-lock-screen').style.display = 'flex'; } 
+            else { document.getElementById('app-content').classList.add('unlocked'); document.getElementById('pin-lock-screen').style.display = 'none'; }
 
             loadFirebase();
         }
