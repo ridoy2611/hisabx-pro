@@ -10,7 +10,9 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    
     <style>
         :root {
             --bg-primary: #000000;
@@ -28,6 +30,13 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
         body { background: var(--bg-primary); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
+
+        /* Splash Screen Animation */
+        @keyframes pulse { 
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4); } 
+            70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(212, 175, 55, 0); } 
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); } 
+        }
 
         /* Modern Pin Screen with Numpad */
         #pin-lock-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: var(--bg-primary); z-index: 99999; display: none; flex-direction: column; justify-content: center; align-items: center; }
@@ -124,6 +133,12 @@
 </head>
 <body>
 
+    <div id="splash-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #000000; z-index: 9999999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.5s ease;">
+        <img src="https://via.placeholder.com/110?text=Logo" alt="Logo" style="width: 100px; height: 100px; border-radius: 50%; border: 3px solid #D4AF37; margin-bottom: 20px; box-shadow: 0 8px 32px 0 rgba(212, 175, 55, 0.15); animation: pulse 1.5s infinite;">
+        <h2 style="color: #D4AF37; font-weight: 600; letter-spacing: 1px;">Pragati LEDGER</h2>
+        <p style="color: #A0A0A0; font-size: 0.9rem; margin-top: 5px;">Loading Data...</p>
+    </div>
+
     <div id="toast-container"></div>
 
     <div id="custom-confirm">
@@ -137,7 +152,7 @@
     </div>
 
     <div id="pin-lock-screen">
-        <img src="Paragati IT Logo_Dark.png" alt="Logo" class="login-logo" onerror="this.src='https://via.placeholder.com/110?text=Logo'">
+        <img src="Paragati IT Logo_Dark.png" alt="Logo" class="login-logo" onerror="this.src='"Paragati IT Logo_Dark.png>
         <h2 style="color:var(--accent-gold); margin-bottom:20px; font-weight: 500;">Enter PIN</h2>
         
         <div class="pin-display">
@@ -890,6 +905,15 @@
             else { document.getElementById('pin-lock-screen').style.display = 'none'; document.getElementById('app-content').classList.add('unlocked'); }
 
             loadFirebase();
+
+            // Splash Screen Hide Logic
+            setTimeout(() => {
+                let splash = document.getElementById('splash-screen');
+                if(splash) {
+                    splash.style.opacity = '0';
+                    setTimeout(() => splash.style.display = 'none', 500);
+                }
+            }, 600);
         }
 
         initApp();
