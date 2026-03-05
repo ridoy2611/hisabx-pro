@@ -379,27 +379,20 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        let app, auth, db;
+        let signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, doc, setDoc, getDoc;
+        let userDocRef = null;
+        let isOnline = navigator.onLine;
 
         // *** SECURITY FIX: Add your config here, do not share publicly ***
         const firebaseConfig = {
-            apiKey: "AIzaSyBrOuU7XEj6iOtN2QhgPnqiEIfyOJ9rINw",
-            authDomain: "pragati-it.firebaseapp.com",
-            projectId: "pragati-it",
-            storageBucket: "pragati-it.firebasestorage.app",
-            messagingSenderId: "862683484950",
-            appId: "1:862683484950:web:f6aa1b26a6634e57b27637",
-            measurementId: "G-XL2CLE65VN"
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        let userDocRef = null;
-        let isOnline = navigator.onLine;
 
         window.data = {
             accounts: [], transactions: [], office: [], business: [],
@@ -422,7 +415,7 @@
 
         function save() {
             localStorage.setItem('pragati_data', JSON.stringify(window.data));
-            if (userDocRef && isOnline) {
+            if (userDocRef && isOnline && setDoc) {
                 setDoc(userDocRef, { data: window.data }, {merge: true}).catch(e=>console.log("Sync Error", e));
             }
             renderAll();
@@ -447,36 +440,6 @@
         }
         window.addEventListener('online', updateNetworkStatus);
         window.addEventListener('offline', updateNetworkStatus);
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                document.getElementById('user-status').textContent = `Logged in: ${user.email}`;
-                document.getElementById('login-form-container').style.display = 'none';
-                document.getElementById('logout-btn').style.display = 'inline-block';
-                userDocRef = doc(db, "pragati_users", user.uid);
-                
-                if(isOnline) {
-                    const docSnap = await getDoc(userDocRef);
-                    if(docSnap.exists()) {
-                        let cloudData = docSnap.data().data;
-                        // Basic Merge: Keep local array items if cloud is empty, otherwise take cloud
-                        // In a real pro app, you'd merge based on timestamps. Here we prevent total override if cloud is empty.
-                        if(cloudData && cloudData.transactions) {
-                             window.data = cloudData; 
-                             save(); // Saves to localstorage
-                        }
-                    } else {
-                        save(); // First time sync
-                    }
-                }
-            } else {
-                document.getElementById('user-status').textContent = "Login/Register to Sync Online";
-                document.getElementById('login-form-container').style.display = 'block';
-                document.getElementById('logout-btn').style.display = 'none';
-                userDocRef = null;
-            }
-            renderAll();
-        });
 
         window.toggleMenu = function() {
             document.querySelector('.sidebar').classList.toggle('active-mobile');
@@ -553,7 +516,6 @@
             let btn = document.getElementById(prefix + '-btn');
             if(btn) btn.innerText = "Save / Add Record";
             document.getElementById(prefix + '-cancel-btn').style.display = "none";
-            // Clears form loosely
             document.querySelectorAll(`#${prefix} input[type="text"], #${prefix} input[type="number"]`).forEach(i => i.value = '');
         }
 
@@ -678,9 +640,9 @@
             reader.readAsText(e.target.files[0]);
         }
 
-        window.emailLogin = function() { let e = document.getElementById('auth-email').value; let p = document.getElementById('auth-password').value; if(e && p) signInWithEmailAndPassword(auth, e, p).then(()=>alert("Logged In!")).catch(er=>alert(er.message)); }
-        window.emailRegister = function() { let e = document.getElementById('auth-email').value; let p = document.getElementById('auth-password').value; if(e && p) createUserWithEmailAndPassword(auth, e, p).then(()=>alert("Registered!")).catch(er=>alert(er.message)); }
-        window.logout = function() { signOut(auth).then(()=>{ alert("Logged out"); location.reload(); }); }
+        window.emailLogin = function() { if(!auth) return alert("You are offline. Firebase is not loaded."); let e = document.getElementById('auth-email').value; let p = document.getElementById('auth-password').value; if(e && p) signInWithEmailAndPassword(auth, e, p).then(()=>alert("Logged In!")).catch(er=>alert(er.message)); }
+        window.emailRegister = function() { if(!auth) return alert("You are offline. Firebase is not loaded."); let e = document.getElementById('auth-email').value; let p = document.getElementById('auth-password').value; if(e && p) createUserWithEmailAndPassword(auth, e, p).then(()=>alert("Registered!")).catch(er=>alert(er.message)); }
+        window.logout = function() { if(!auth) return alert("You are offline."); signOut(auth).then(()=>{ alert("Logged out"); location.reload(); }); }
 
         function renderAll() {
             document.getElementById('dash-greeting').innerText = window.data.profile.name ? `Hello, ${window.data.profile.name}` : "Welcome to Pragati Ledger";
@@ -692,13 +654,11 @@
             document.getElementById('budget-type').value = window.data.budget.type || 'Monthly';
             document.getElementById('budget-amt').value = window.data.budget.amount || '';
 
-            
             let accHtml = '', accOptions = '<option value="" disabled selected>Select Account</option>', totalAssets = 0;
-
             window.data.accounts.forEach((a, i) => {
-            totalAssets += a.balance;
-            accHtml += `<tr><td>${a.name}</td><td style="color:var(--accent-gold); font-weight:600;">৳${a.balance}</td><td><i class="fas fa-trash del-btn" onclick="deleteAccount(${i})"></i></td></tr>`;
-            accOptions += `<option value="${a.name}">${a.name}</option>`;
+                totalAssets += a.balance;
+                accHtml += `<tr><td>${a.name}</td><td style="color:var(--accent-gold); font-weight:600;">৳${a.balance}</td><td><i class="fas fa-trash del-btn" onclick="deleteAccount(${i})"></i></td></tr>`;
+                accOptions += `<option value="${a.name}">${a.name}</option>`;
             });
             document.getElementById('acc-table').innerHTML = accHtml;
             document.getElementById('t-account').innerHTML = accOptions;
@@ -708,7 +668,7 @@
             ` + window.data.accounts.map(a => `<div class="card"><div style="font-size:0.85rem; color:var(--text-muted);">${a.name}</div><div class="card-value" style="font-size:1.1rem;">৳${a.balance}</div></div>`).join('');
 
             let tHtml = '', mSpent = 0, catExp = {};
-            const currMonth = getLocalISODate().slice(0, 7); // Safe local month calculation
+            const currMonth = getLocalISODate().slice(0, 7); 
             
             window.data.transactions.slice().reverse().forEach((t, index) => {
                 let realIdx = window.data.transactions.length - 1 - index;
@@ -767,6 +727,54 @@
             }
         }
 
+        async function loadFirebase() {
+            if (!navigator.onLine) return; 
+
+            try {
+                const firebaseApp = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
+                const firebaseAuth = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js");
+                const firebaseStore = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+
+                app = firebaseApp.initializeApp(firebaseConfig);
+                auth = firebaseAuth.getAuth(app);
+                db = firebaseStore.getFirestore(app);
+
+                signInWithEmailAndPassword = firebaseAuth.signInWithEmailAndPassword;
+                createUserWithEmailAndPassword = firebaseAuth.createUserWithEmailAndPassword;
+                signOut = firebaseAuth.signOut;
+                doc = firebaseStore.doc;
+                setDoc = firebaseStore.setDoc;
+                getDoc = firebaseStore.getDoc;
+
+                firebaseAuth.onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        document.getElementById('user-status').textContent = `Logged in: ${user.email}`;
+                        document.getElementById('login-form-container').style.display = 'none';
+                        document.getElementById('logout-btn').style.display = 'inline-block';
+                        userDocRef = doc(db, "pragati_users", user.uid);
+                        
+                        if(isOnline) {
+                            const docSnap = await getDoc(userDocRef);
+                            if(docSnap.exists() && docSnap.data().data && docSnap.data().data.transactions) {
+                                window.data = docSnap.data().data; 
+                                save(); 
+                            } else {
+                                save(); 
+                            }
+                        }
+                    } else {
+                        document.getElementById('user-status').textContent = "Login/Register to Sync Online";
+                        document.getElementById('login-form-container').style.display = 'block';
+                        document.getElementById('logout-btn').style.display = 'none';
+                        userDocRef = null;
+                    }
+                    renderAll();
+                });
+            } catch(e) {
+                console.log("Offline mode active. Firebase skipped.");
+            }
+        }
+
         function initApp() {
             updateNetworkStatus(); updateCategories();
             document.getElementById('t-date').value = getLocalISODate();
@@ -782,15 +790,13 @@
             document.getElementById('dps-date').value = getLocalISODate();
             document.getElementById('dps-time').value = getLocalTime();
 
-      // initApp() ফাংশনের নিচের দিকে এই অংশটুকু আপডেট করুন:
-        if(localStorage.getItem('pragati_data')) {
-        window.data = JSON.parse(localStorage.getItem('pragati_data'));
-        } else if (localStorage.getItem('hisabx_data')) {
-        // পুরোনো ডেটা রিকভারি
-        window.data = JSON.parse(localStorage.getItem('hisabx_data'));
-        localStorage.setItem('pragati_data', JSON.stringify(window.data)); // নতুন নামে সেভ করে নেওয়া
-        }
-renderAll();
+            if(localStorage.getItem('pragati_data')) {
+                window.data = JSON.parse(localStorage.getItem('pragati_data'));
+            } else if (localStorage.getItem('hisabx_data')) {
+                window.data = JSON.parse(localStorage.getItem('hisabx_data'));
+                localStorage.setItem('pragati_data', JSON.stringify(window.data)); 
+            }
+            renderAll();
             
             if(localStorage.getItem('pragati_pin')) {
                 document.getElementById('pin-lock-screen').style.display = 'flex';
@@ -798,6 +804,8 @@ renderAll();
                 document.getElementById('app-content').classList.add('unlocked');
                 document.getElementById('pin-lock-screen').style.display = 'none';
             }
+
+            loadFirebase();
         }
 
         window.onload = initApp;
