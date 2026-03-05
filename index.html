@@ -25,10 +25,12 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
         body { background: var(--bg-primary); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
 
-        #pin-lock-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: var(--bg-primary); z-index: 99999; display: none; flex-direction: column; justify-content: center; align-items: center; }
-        #pin-lock-screen.active { display: flex; }
+        #pin-lock-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: var(--bg-primary); z-index: 99999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         .pin-input { font-size: 2rem; letter-spacing: 15px; text-align: center; width: 200px; padding: 10px; border: 2px solid var(--accent-gold); border-radius: 10px; background: transparent; color: var(--text-main); outline: none; margin-bottom: 20px;}
         
+        #app-content { display: none; width: 100%; height: 100%; }
+        #app-content.unlocked { display: flex; }
+
         .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 500; margin-bottom: 10px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(212, 175, 55, 0.1); }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; }
         .online-dot { background-color: var(--success); box-shadow: 0 0 8px var(--success); }
@@ -59,6 +61,7 @@
         .btn-gold { background: var(--accent-gold); color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; font-size: 16px; }
         .btn-gold:hover { transform: scale(0.98); opacity: 0.9; }
         .btn-outline { background: transparent; border: 1px solid var(--accent-gold); color: var(--accent-gold); }
+        .btn-danger-outline { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
         
         .table-wrapper { overflow-x: auto; margin-top: 15px; border-radius: 8px; -webkit-overflow-scrolling: touch; }
         table { width: 100%; border-collapse: collapse; min-width: 550px; }
@@ -104,262 +107,283 @@
         <p id="pin-error" style="color:var(--danger); margin-top:10px; display:none;">Incorrect PIN!</p>
     </div>
 
-    <div class="sidebar-overlay" onclick="toggleMenu()"></div>
+    <div id="app-content">
+        <div class="sidebar-overlay" onclick="toggleMenu()"></div>
 
-    <nav class="sidebar">
-        <div class="brand">Pragati LEDGER</div>
-        <div style="text-align: center; margin-bottom: 15px;">
-            <div class="status-badge">
-                <div class="status-dot online-dot" id="status-dot"></div>
-                <span id="status-text">Checking...</span>
+        <nav class="sidebar">
+            <div class="brand">Pragati LEDGER</div>
+            <div style="text-align: center; margin-bottom: 15px;">
+                <div class="status-badge">
+                    <div class="status-dot online-dot" id="status-dot"></div>
+                    <span id="status-text">Checking...</span>
+                </div>
             </div>
-        </div>
-        <a class="nav-link active" onclick="showModule('dashboard')"><i class="fas fa-home"></i> Dashboard</a>
-        <a class="nav-link" onclick="showModule('accounts')"><i class="fas fa-wallet"></i> Accounts & Budget</a>
-        <a class="nav-link" onclick="showModule('transactions')"><i class="fas fa-exchange-alt"></i> Transactions</a>
-        <a class="nav-link" onclick="showModule('office')"><i class="fas fa-building"></i> Office Ledger</a>
-        <a class="nav-link" onclick="showModule('business')"><i class="fas fa-shop"></i> Business</a>
-        <a class="nav-link" onclick="showModule('debt')"><i class="fas fa-users"></i> Debt</a>
-        <a class="nav-link" onclick="showModule('loans')"><i class="fas fa-university"></i> Loans</a>
-        <a class="nav-link" onclick="showModule('dps')"><i class="fas fa-piggy-bank"></i> DPS</a>
-        <a class="nav-link" onclick="showModule('reports')"><i class="fas fa-file-invoice"></i> Reports</a>
-        <a class="nav-link" onclick="showModule('profile')"><i class="fas fa-user-circle"></i> Profile & Settings</a>
-    </nav>
+            <a class="nav-link active" onclick="showModule('dashboard')"><i class="fas fa-home"></i> Dashboard</a>
+            <a class="nav-link" onclick="showModule('accounts')"><i class="fas fa-wallet"></i> Accounts & Budget</a>
+            <a class="nav-link" onclick="showModule('transactions')"><i class="fas fa-exchange-alt"></i> Transactions</a>
+            <a class="nav-link" onclick="showModule('office')"><i class="fas fa-building"></i> Office Ledger</a>
+            <a class="nav-link" onclick="showModule('business')"><i class="fas fa-shop"></i> Business</a>
+            <a class="nav-link" onclick="showModule('debt')"><i class="fas fa-users"></i> Debt</a>
+            <a class="nav-link" onclick="showModule('loans')"><i class="fas fa-university"></i> Loans</a>
+            <a class="nav-link" onclick="showModule('dps')"><i class="fas fa-piggy-bank"></i> DPS</a>
+            <a class="nav-link" onclick="showModule('reports')"><i class="fas fa-file-invoice"></i> Reports</a>
+            <a class="nav-link" onclick="showModule('profile')"><i class="fas fa-user-circle"></i> Profile & Settings</a>
+        </nav>
 
-    <main class="main-content">
-        <div class="brand-mobile">
-            <div class="menu-toggle" onclick="toggleMenu()">&#9776;</div>
-            Pragati LEDGER
-        </div>
-        
-        <div id="dashboard" class="module-view active">
-            <h2 id="dash-greeting">Welcome</h2>
-            <p id="dash-subtitle" style="color: var(--text-muted); margin-bottom: 20px;"></p>
+        <main class="main-content">
+            <div class="brand-mobile">
+                <div class="menu-toggle" onclick="toggleMenu()">&#9776;</div>
+                Pragati LEDGER
+            </div>
             
-            <h3 style="font-size: 1rem; color: var(--accent-gold); margin-bottom: 10px;">Total Assets (অ্যাকাউন্ট ব্যালেন্স)</h3>
-            <div class="summary-grid" id="acc-summary-cards"></div>
+            <div id="dashboard" class="module-view active">
+                <h2 id="dash-greeting">Welcome</h2>
+                <p id="dash-subtitle" style="color: var(--text-muted); margin-bottom: 20px;"></p>
+                
+                <h3 style="font-size: 1rem; color: var(--accent-gold); margin-bottom: 10px;">Total Assets (অ্যাকাউন্ট ব্যালেন্স)</h3>
+                <div class="summary-grid" id="acc-summary-cards"></div>
 
-            <div class="glass-box" style="margin-top: 15px;">
-                <h3 style="font-size: 1rem; color: var(--accent-gold); text-align:center;">Expense Visualizer</h3>
-                <div class="chart-container" id="chart-wrapper">
-                    <canvas id="expenseChart"></canvas>
-                </div>
-            </div>
-
-            <div class="glass-box" style="margin-top: 15px;">
-                <h3 style="font-size: 1rem; color: var(--accent-gold); margin-bottom: 10px;" id="budget-title-display">Budget Status</h3>
-                <p style="font-size:0.85rem; display:flex; justify-content:space-between;">
-                    <span id="budget-spent-text">Spent: ৳0</span>
-                    <span id="budget-total-text" style="color:var(--text-muted)">Budget: ৳0</span>
-                </p>
-                <div class="prog-bg" style="height:12px; border-radius:6px; background:#222; margin-top:8px;">
-                    <div id="budget-prog-fill" class="prog-fill" style="width:0%; border-radius:6px;"></div>
-                </div>
-            </div>
-        </div>
-
-        <div id="accounts" class="module-view">
-            <h2>Accounts & Budget</h2>
-            <div class="glass-box">
-                <h3 style="font-size: 1rem; color: var(--accent-gold); margin-bottom: 10px;">Set Your Budget</h3>
-                <div class="input-row">
-                    <select id="budget-type">
-                        <option value="Daily">Daily Budget</option>
-                        <option value="Weekly">Weekly Budget</option>
-                        <option value="Monthly" selected>Monthly Budget</option>
-                        <option value="Yearly">Yearly Budget</option>
-                    </select>
-                    <input type="number" id="budget-amt" placeholder="Budget Amount">
-                </div>
-                <button class="btn-gold" onclick="saveBudget()">Save Budget</button>
-            </div>
-            <div class="glass-box">
-                <h3 style="font-size: 1rem; color: var(--accent-gold); margin-bottom: 10px;">Add New Account</h3>
-                <div class="input-row">
-                    <input type="text" id="acc-name" placeholder="Name (e.g. Bkash)">
-                    <input type="number" id="acc-bal" placeholder="Initial Balance">
-                </div>
-                <button class="btn-gold" onclick="saveAccount()">Add Account</button>
-            </div>
-            <div class="table-wrapper"><table><thead><tr><th>Account Name</th><th>Current Balance</th><th>Action</th></tr></thead><tbody id="acc-table"></tbody></table></div>
-        </div>
-
-        <div id="transactions" class="module-view">
-            <h2>Transactions</h2>
-            <div class="glass-box">
-                <div class="input-row">
-                    <div class="datetime-group">
-                        <input type="date" id="t-date" title="তারিখ">
-                        <input type="time" id="t-time" title="সময়">
+                <div class="glass-box" style="margin-top: 15px;">
+                    <h3 style="font-size: 1rem; color: var(--accent-gold); text-align:center;">Expense Visualizer</h3>
+                    <div class="chart-container" id="chart-wrapper">
+                        <canvas id="expenseChart"></canvas>
+                        <p id="chart-fallback" style="display:none; color:var(--danger); text-align:center; margin-top:50px;">Connect to internet to load chart.</p>
                     </div>
-                    <select id="t-type" onchange="updateCategories()">
-                        <option value="expense">Expense (-)</option>
-                        <option value="income">Income (+)</option>
-                    </select>
                 </div>
-                <div class="input-row">
-                    <select id="t-account" title="Select Account"></select>
-                    <select id="t-category" title="Select Category"></select>
-                </div>
-                <div class="input-row">
-                    <input type="number" id="t-amt" placeholder="Amount">
-                    <input type="text" id="t-desc" placeholder="Note / Description">
-                </div>
-                <input type="hidden" id="t-edit-idx" value="-1">
-                <button class="btn-gold" id="t-btn" onclick="saveTransaction()">Save Transaction</button>
-            </div>
-            <div class="table-wrapper"><table><thead><tr><th>Date & Acc</th><th>Category & Note</th><th>Amount</th><th>Action</th></tr></thead><tbody id="t-table"></tbody></table></div>
-        </div>
 
-        <div id="office" class="module-view">
-            <h2>Office Ledger</h2>
-            <div class="glass-box">
-                <div class="input-row">
-                    <div class="datetime-group"><input type="date" id="off-date"><input type="time" id="off-time"></div>
-                    <input type="text" id="off-desc" placeholder="বিবরণ (Purpose)">
-                    <input type="number" id="off-total" placeholder="মোট (Total Amount)">
-                    <input type="number" id="off-adv" placeholder="অগ্রীম (Advance Paid)">
+                <div class="glass-box" style="margin-top: 15px;">
+                    <h3 style="font-size: 1rem; color: var(--accent-gold); margin-bottom: 10px;" id="budget-title-display">Budget Status</h3>
+                    <p style="font-size:0.85rem; display:flex; justify-content:space-between;">
+                        <span id="budget-spent-text">Spent: ৳0</span>
+                        <span id="budget-total-text" style="color:var(--text-muted)">Budget: ৳0</span>
+                    </p>
+                    <div class="prog-bg" style="height:12px; border-radius:6px; background:#222; margin-top:8px;">
+                        <div id="budget-prog-fill" class="prog-fill" style="width:0%; border-radius:6px;"></div>
+                    </div>
                 </div>
-                <input type="hidden" id="off-edit-idx" value="-1">
-                <button class="btn-gold" id="off-btn" onclick="saveData('office')">Add Record</button>
-            </div>
-            <div class="table-wrapper"><table><thead><tr><th>Purpose & Date</th><th>মোট</th><th>অগ্রীম</th><th>বাকী</th><th>Action</th></tr></thead><tbody id="off-table"></tbody></table></div>
-        </div>
-
-        <div id="business" class="module-view">
-            <h2>Business Sales</h2>
-            <div class="glass-box">
-                <div class="input-row">
-                    <div class="datetime-group"><input type="date" id="b-date"><input type="time" id="b-time"></div>
-                    <input type="text" id="b-item" placeholder="Item Name">
-                    <input type="number" id="b-qty" placeholder="Qty">
-                    <input type="number" id="b-price" placeholder="Price">
-                </div>
-                <input type="hidden" id="b-edit-idx" value="-1">
-                <button class="btn-gold" id="b-btn" onclick="saveData('business')">Record Sale</button>
-            </div>
-            <div class="table-wrapper"><table><thead><tr><th>Item & Date</th><th>Qty</th><th>Total</th><th>Action</th></tr></thead><tbody id="b-table"></tbody></table></div>
-        </div>
-
-        <div id="debt" class="module-view">
-            <h2>Debt & Debtors</h2>
-            <div class="glass-box">
-                <div class="input-row">
-                    <div class="datetime-group"><input type="date" id="d-date"><input type="time" id="d-time"></div>
-                    <input type="text" id="d-name" placeholder="Name">
-                    <input type="number" id="d-amt" placeholder="Amount">
-                    <select id="d-type"><option value="receivable">Receivable</option><option value="payable">Payable</option></select>
-                </div>
-                <input type="hidden" id="d-edit-idx" value="-1">
-                <button class="btn-gold" id="d-btn" onclick="saveData('debt')">Add Record</button>
-            </div>
-            <div class="table-wrapper"><table><thead><tr><th>Name & Date</th><th>Type</th><th>Amount</th><th>Action</th></tr></thead><tbody id="d-table"></tbody></table></div>
-        </div>
-
-        <div id="loans" class="module-view">
-            <h2>Loans Management</h2>
-            <div class="glass-box">
-                <div class="input-row">
-                    <div class="datetime-group"><input type="date" id="l-date"><input type="time" id="l-time"></div>
-                    <input type="text" id="l-name" placeholder="Bank or Person">
-                    <input type="number" id="l-target" placeholder="Target / Total Loan">
-                    <select id="l-cycle"><option value="Monthly">Monthly</option><option value="Weekly">Weekly</option><option value="Yearly">Yearly</option></select>
-                </div>
-                <div class="input-row">
-                    <input type="number" id="l-inst-amt" placeholder="Installment Amount">
-                    <input type="number" id="l-paid-count" placeholder="No. of Paid Installments">
-                </div>
-                <input type="hidden" id="l-edit-idx" value="-1">
-                <button class="btn-gold" id="l-btn" onclick="saveData('loans')">Save Loan</button>
-            </div>
-            <div class="table-wrapper"><table><thead><tr><th>Provider & Cycle</th><th>Target</th><th>Progress & Paid</th><th>Due</th><th>Action</th></tr></thead><tbody id="l-table"></tbody></table></div>
-        </div>
-
-        <div id="dps" class="module-view">
-            <h2>DPS / Savings</h2>
-            <div class="glass-box">
-                <div class="input-row">
-                    <div class="datetime-group"><input type="date" id="dps-date"><input type="time" id="dps-time"></div>
-                    <input type="text" id="dps-name" placeholder="Bank or Plan Name">
-                    <input type="number" id="dps-target" placeholder="Target Saving Amount">
-                    <select id="dps-cycle"><option value="Monthly">Monthly</option><option value="Weekly">Weekly</option><option value="Yearly">Yearly</option></select>
-                </div>
-                <div class="input-row">
-                    <input type="number" id="dps-inst-amt" placeholder="Installment Amount">
-                    <input type="number" id="dps-paid-count" placeholder="No. of Paid Installments">
-                </div>
-                <input type="hidden" id="dps-edit-idx" value="-1">
-                <button class="btn-gold" id="dps-btn" onclick="saveData('dps')">Save DPS</button>
-            </div>
-            <div class="table-wrapper"><table><thead><tr><th>Plan & Cycle</th><th>Target</th><th>Progress & Saved</th><th>Remain</th><th>Action</th></tr></thead><tbody id="dps-table"></tbody></table></div>
-        </div>
-
-        <div id="reports" class="module-view">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                <h2>Financial Reports</h2>
-                <button class="btn-gold btn-outline" style="width:auto; margin:0;" onclick="window.print()"><i class="fas fa-print"></i> Print PDF</button>
-            </div>
-            <div class="table-wrapper"><table><thead><tr><th>Module & Details</th><th>Type/Category</th><th>Amount</th></tr></thead><tbody id="report-table"></tbody></table></div>
-        </div>
-
-        <div id="profile" class="module-view">
-            <h2>Profile & Settings</h2>
-            <div class="glass-box" style="text-align:center">
-                <div class="profile-pic-container">
-                    <img id="prof-img" src="https://via.placeholder.com/110" alt="Profile">
-                    <label for="img-up" class="img-up-label"><i class="fas fa-camera"></i></label>
-                    <input type="file" id="img-up" style="display:none" onchange="uploadImg(event)">
-                </div>
-                <div class="input-row">
-                    <input type="text" id="set-name" placeholder="Full Name">
-                    <input type="text" id="set-biz" placeholder="Company Name">
-                </div>
-                <input type="text" id="set-loc" placeholder="Location" style="margin-top:10px;">
-                <button class="btn-gold" onclick="saveProfile()">Update Profile</button>
             </div>
 
-            <div class="glass-box" style="border-color: var(--warning);">
-                <h3><i class="fas fa-lock"></i> App Lock (PIN)</h3>
-                <div class="input-row">
-                    <input type="password" id="new-pin-input" placeholder="Enter 4-digit PIN" inputmode="numeric" maxlength="4">
-                    <button class="btn-gold" style="margin-top:0;" onclick="managePin('set')">Set / Change</button>
+            <div id="accounts" class="module-view">
+                <h2>Accounts & Budget</h2>
+                <div class="glass-box">
+                    <h3 style="font-size: 1rem; color: var(--accent-gold); margin-bottom: 10px;">Set Your Budget</h3>
+                    <div class="input-row">
+                        <select id="budget-type">
+                            <option value="Daily">Daily Budget</option>
+                            <option value="Weekly">Weekly Budget</option>
+                            <option value="Monthly" selected>Monthly Budget</option>
+                            <option value="Yearly">Yearly Budget</option>
+                        </select>
+                        <input type="number" id="budget-amt" placeholder="Budget Amount">
+                    </div>
+                    <button class="btn-gold" onclick="saveBudget()">Save Budget</button>
                 </div>
-                <button class="btn-gold btn-outline" style="color:var(--danger); border-color:var(--danger); margin-top:10px;" onclick="managePin('remove')">Remove PIN</button>
+                <div class="glass-box">
+                    <h3 style="font-size: 1rem; color: var(--accent-gold); margin-bottom: 10px;">Add New Account</h3>
+                    <div class="input-row">
+                        <input type="text" id="acc-name" placeholder="Name (e.g. Bkash)">
+                        <input type="number" id="acc-bal" placeholder="Initial Balance">
+                    </div>
+                    <button class="btn-gold" onclick="saveAccount()">Add Account</button>
+                </div>
+                <div class="table-wrapper"><table><thead><tr><th>Account Name</th><th>Current Balance</th><th>Action</th></tr></thead><tbody id="acc-table"></tbody></table></div>
             </div>
 
-            <div class="glass-box" id="auth-box" style="text-align:center; border-color: var(--accent-gold);">
-                <p id="user-status" style="margin-bottom:15px; font-weight: 500;">Login/Register to Sync Online</p>
-                <div id="login-form-container">
-                    <input type="email" id="auth-email" placeholder="Email Address" style="margin-bottom: 10px;">
-                    <input type="password" id="auth-password" placeholder="Password (Min 6 chars)" style="margin-bottom: 15px;">
+            <div id="transactions" class="module-view">
+                <h2>Transactions</h2>
+                <div class="glass-box">
+                    <div class="input-row">
+                        <div class="datetime-group">
+                            <input type="date" id="t-date" title="তারিখ">
+                            <input type="time" id="t-time" title="সময়">
+                        </div>
+                        <select id="t-type" onchange="updateCategories()">
+                            <option value="expense">Expense (-)</option>
+                            <option value="income">Income (+)</option>
+                        </select>
+                    </div>
+                    <div class="input-row">
+                        <select id="t-account" title="Select Account"></select>
+                        <select id="t-category" title="Select Category"></select>
+                    </div>
+                    <div class="input-row">
+                        <input type="number" id="t-amt" placeholder="Amount">
+                        <input type="text" id="t-desc" placeholder="Note / Description">
+                    </div>
+                    <input type="hidden" id="t-edit-idx" value="-1">
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn-gold" id="t-btn" onclick="saveTransaction()">Save Transaction</button>
+                        <button class="btn-gold btn-danger-outline" id="t-cancel-btn" style="display:none;" onclick="cancelEdit('t')">Cancel</button>
+                    </div>
+                </div>
+                <div class="table-wrapper"><table><thead><tr><th>Date & Acc</th><th>Category & Note</th><th>Amount</th><th>Action</th></tr></thead><tbody id="t-table"></tbody></table></div>
+            </div>
+
+            <div id="office" class="module-view">
+                <h2>Office Ledger</h2>
+                <div class="glass-box">
+                    <div class="input-row">
+                        <div class="datetime-group"><input type="date" id="off-date"><input type="time" id="off-time"></div>
+                        <input type="text" id="off-desc" placeholder="বিবরণ (Purpose)">
+                        <input type="number" id="off-total" placeholder="মোট (Total Amount)">
+                        <input type="number" id="off-adv" placeholder="অগ্রীম (Advance Paid)">
+                    </div>
+                    <input type="hidden" id="off-edit-idx" value="-1">
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn-gold" id="off-btn" onclick="saveData('office')">Add Record</button>
+                        <button class="btn-gold btn-danger-outline" id="off-cancel-btn" style="display:none;" onclick="cancelEdit('off')">Cancel</button>
+                    </div>
+                </div>
+                <div class="table-wrapper"><table><thead><tr><th>Purpose & Date</th><th>মোট</th><th>অগ্রীম</th><th>বাকী</th><th>Action</th></tr></thead><tbody id="off-table"></tbody></table></div>
+            </div>
+
+            <div id="business" class="module-view">
+                <h2>Business Sales</h2>
+                <div class="glass-box">
+                    <div class="input-row">
+                        <div class="datetime-group"><input type="date" id="b-date"><input type="time" id="b-time"></div>
+                        <input type="text" id="b-item" placeholder="Item Name">
+                        <input type="number" id="b-qty" placeholder="Qty">
+                        <input type="number" id="b-price" placeholder="Price">
+                    </div>
+                    <input type="hidden" id="b-edit-idx" value="-1">
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn-gold" id="b-btn" onclick="saveData('business')">Record Sale</button>
+                        <button class="btn-gold btn-danger-outline" id="b-cancel-btn" style="display:none;" onclick="cancelEdit('b')">Cancel</button>
+                    </div>
+                </div>
+                <div class="table-wrapper"><table><thead><tr><th>Item & Date</th><th>Qty</th><th>Total</th><th>Action</th></tr></thead><tbody id="b-table"></tbody></table></div>
+            </div>
+
+            <div id="debt" class="module-view">
+                <h2>Debt & Debtors</h2>
+                <div class="glass-box">
+                    <div class="input-row">
+                        <div class="datetime-group"><input type="date" id="d-date"><input type="time" id="d-time"></div>
+                        <input type="text" id="d-name" placeholder="Name">
+                        <input type="number" id="d-amt" placeholder="Amount">
+                        <select id="d-type"><option value="receivable">Receivable</option><option value="payable">Payable</option></select>
+                    </div>
+                    <input type="hidden" id="d-edit-idx" value="-1">
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn-gold" id="d-btn" onclick="saveData('debt')">Add Record</button>
+                        <button class="btn-gold btn-danger-outline" id="d-cancel-btn" style="display:none;" onclick="cancelEdit('d')">Cancel</button>
+                    </div>
+                </div>
+                <div class="table-wrapper"><table><thead><tr><th>Name & Date</th><th>Type</th><th>Amount</th><th>Action</th></tr></thead><tbody id="d-table"></tbody></table></div>
+            </div>
+
+            <div id="loans" class="module-view">
+                <h2>Loans Management</h2>
+                <div class="glass-box">
+                    <div class="input-row">
+                        <div class="datetime-group"><input type="date" id="l-date"><input type="time" id="l-time"></div>
+                        <input type="text" id="l-name" placeholder="Bank or Person">
+                        <input type="number" id="l-target" placeholder="Target / Total Loan">
+                        <select id="l-cycle"><option value="Monthly">Monthly</option><option value="Weekly">Weekly</option><option value="Yearly">Yearly</option></select>
+                    </div>
+                    <div class="input-row">
+                        <input type="number" id="l-inst-amt" placeholder="Installment Amount">
+                        <input type="number" id="l-paid-count" placeholder="No. of Paid Installments">
+                    </div>
+                    <input type="hidden" id="l-edit-idx" value="-1">
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn-gold" id="l-btn" onclick="saveData('loans')">Save Loan</button>
+                        <button class="btn-gold btn-danger-outline" id="l-cancel-btn" style="display:none;" onclick="cancelEdit('l')">Cancel</button>
+                    </div>
+                </div>
+                <div class="table-wrapper"><table><thead><tr><th>Provider & Cycle</th><th>Target</th><th>Progress & Paid</th><th>Due</th><th>Action</th></tr></thead><tbody id="l-table"></tbody></table></div>
+            </div>
+
+            <div id="dps" class="module-view">
+                <h2>DPS / Savings</h2>
+                <div class="glass-box">
+                    <div class="input-row">
+                        <div class="datetime-group"><input type="date" id="dps-date"><input type="time" id="dps-time"></div>
+                        <input type="text" id="dps-name" placeholder="Bank or Plan Name">
+                        <input type="number" id="dps-target" placeholder="Target Saving Amount">
+                        <select id="dps-cycle"><option value="Monthly">Monthly</option><option value="Weekly">Weekly</option><option value="Yearly">Yearly</option></select>
+                    </div>
+                    <div class="input-row">
+                        <input type="number" id="dps-inst-amt" placeholder="Installment Amount">
+                        <input type="number" id="dps-paid-count" placeholder="No. of Paid Installments">
+                    </div>
+                    <input type="hidden" id="dps-edit-idx" value="-1">
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn-gold" id="dps-btn" onclick="saveData('dps')">Save DPS</button>
+                        <button class="btn-gold btn-danger-outline" id="dps-cancel-btn" style="display:none;" onclick="cancelEdit('dps')">Cancel</button>
+                    </div>
+                </div>
+                <div class="table-wrapper"><table><thead><tr><th>Plan & Cycle</th><th>Target</th><th>Progress & Saved</th><th>Remain</th><th>Action</th></tr></thead><tbody id="dps-table"></tbody></table></div>
+            </div>
+
+            <div id="reports" class="module-view">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <h2>Financial Reports</h2>
+                    <button class="btn-gold btn-outline" style="width:auto; margin:0;" onclick="window.print()"><i class="fas fa-print"></i> Print PDF</button>
+                </div>
+                <div class="table-wrapper"><table><thead><tr><th>Module & Details</th><th>Type/Category</th><th>Amount</th></tr></thead><tbody id="report-table"></tbody></table></div>
+            </div>
+
+            <div id="profile" class="module-view">
+                <h2>Profile & Settings</h2>
+                <div class="glass-box" style="text-align:center">
+                    <div class="profile-pic-container">
+                        <img id="prof-img" src="https://via.placeholder.com/110" alt="Profile">
+                        <label for="img-up" class="img-up-label"><i class="fas fa-camera"></i></label>
+                        <input type="file" id="img-up" style="display:none" onchange="uploadImg(event)">
+                    </div>
+                    <div class="input-row">
+                        <input type="text" id="set-name" placeholder="Full Name">
+                        <input type="text" id="set-biz" placeholder="Company Name">
+                    </div>
+                    <input type="text" id="set-loc" placeholder="Location" style="margin-top:10px;">
+                    <button class="btn-gold" onclick="saveProfile()">Update Profile</button>
+                </div>
+
+                <div class="glass-box" style="border-color: var(--warning);">
+                    <h3><i class="fas fa-lock"></i> App Lock (PIN)</h3>
+                    <div class="input-row">
+                        <input type="password" id="new-pin-input" placeholder="Enter 4-digit PIN" inputmode="numeric" maxlength="4">
+                        <button class="btn-gold" style="margin-top:0;" onclick="managePin('set')">Set / Change</button>
+                    </div>
+                    <button class="btn-gold btn-outline" style="color:var(--danger); border-color:var(--danger); margin-top:10px;" onclick="managePin('remove')">Remove PIN</button>
+                </div>
+
+                <div class="glass-box" id="auth-box" style="text-align:center; border-color: var(--accent-gold);">
+                    <p id="user-status" style="margin-bottom:15px; font-weight: 500;">Login/Register to Sync Online</p>
+                    <div id="login-form-container">
+                        <input type="email" id="auth-email" placeholder="Email Address" style="margin-bottom: 10px;">
+                        <input type="password" id="auth-password" placeholder="Password (Min 6 chars)" style="margin-bottom: 15px;">
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn-gold" style="flex: 1; background: var(--success); color: white;" onclick="emailLogin()"><i class="fas fa-sign-in-alt"></i> Login</button>
+                            <button class="btn-gold btn-outline" style="flex: 1;" onclick="emailRegister()"><i class="fas fa-user-plus"></i> Register</button>
+                        </div>
+                    </div>
+                    <button class="btn-gold btn-outline" id="logout-btn" style="display:none; margin-top: 10px;" onclick="logout()">Logout</button>
+                </div>
+
+                <div class="glass-box">
+                    <h3><i class="fas fa-cloud-download-alt"></i> Backup & Restore</h3>
+                    <p style="font-size: 0.8rem; color:var(--text-muted); margin-bottom: 10px;">Manually backup your data as a file and restore it anywhere.</p>
                     <div style="display: flex; gap: 10px;">
-                        <button class="btn-gold" style="flex: 1; background: var(--success); color: white;" onclick="emailLogin()"><i class="fas fa-sign-in-alt"></i> Login</button>
-                        <button class="btn-gold btn-outline" style="flex: 1;" onclick="emailRegister()"><i class="fas fa-user-plus"></i> Register</button>
+                        <button class="btn-gold" style="flex: 1;" onclick="backupData()"><i class="fas fa-download"></i> Backup Data</button>
+                        <label class="btn-gold btn-outline" style="flex: 1; text-align:center; cursor:pointer; margin-top:15px; display:inline-block;">
+                            <i class="fas fa-upload"></i> Restore
+                            <input type="file" style="display:none;" onchange="importData(event)" accept=".json">
+                        </label>
                     </div>
                 </div>
-                <button class="btn-gold btn-outline" id="logout-btn" style="display:none; margin-top: 10px;" onclick="logout()">Logout</button>
             </div>
-
-            <div class="glass-box">
-                <h3><i class="fas fa-cloud-download-alt"></i> Backup & Restore</h3>
-                <p style="font-size: 0.8rem; color:var(--text-muted); margin-bottom: 10px;">Manually backup your data as a file and restore it anywhere.</p>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn-gold" style="flex: 1;" onclick="backupData()"><i class="fas fa-download"></i> Backup Data</button>
-                    <label class="btn-gold btn-outline" style="flex: 1; text-align:center; cursor:pointer; margin-top:15px; display:inline-block;">
-                        <i class="fas fa-upload"></i> Restore
-                        <input type="file" style="display:none;" onchange="importData(event)" accept=".json">
-                    </label>
-                </div>
-            </div>
-        </div>
-    </main>
+        </main>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // *** এখানে আপনার Firebase Config দিন ***
+        // *** SECURITY FIX: Add your config here, do not share publicly ***
         const firebaseConfig = {
             apiKey: "AIzaSyBrOuU7XEj6iOtN2QhgPnqiEIfyOJ9rINw",
             authDomain: "pragati-it.firebaseapp.com",
@@ -368,345 +392,415 @@
             messagingSenderId: "862683484950",
             appId: "1:862683484950:web:f6aa1b26a6634e57b27637",
             measurementId: "G-XL2CLE65VN"
-          };
+        };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        let expenseChartInstance = null;
 
-        // ইনিশিয়াল ডেটা সেটআপ
-        window.data = JSON.parse(localStorage.getItem('hisabx_data')) || {
-            accounts: [], transactions: [], office: [], business: [], debt: [], loans: [], dps: [],
-            budget: { type: 'Monthly', amount: 0 },
-            profile: { name: "Ridoy Saha", biz: "Pragati Print & Tech", loc: "Feni, Bangladesh", img: "https://via.placeholder.com/110" }
+        let userDocRef = null;
+        let isOnline = navigator.onLine;
+
+        window.data = {
+            accounts: [], transactions: [], office: [], business: [],
+            debt: [], loans: [], dps: [], budget: { type: 'Monthly', amount: 0 },
+            profile: { name: '', biz: '', loc: '', img: '' }
         };
 
-        // Network Status
+        const incomeCats = ["Business Sale", "Freelance", "Salary", "Loan Received", "Other Income"];
+        const expenseCats = ["Marketing", "Server/Domain", "Office Rent", "Utility Bills", "Equipments", "Food", "Transport", "Personal", "Other Expense"];
+
+        function getLocalISODate() {
+            const tzOffset = (new Date()).getTimezoneOffset() * 60000;
+            return (new Date(Date.now() - tzOffset)).toISOString().slice(0, 10);
+        }
+
+        function getLocalTime() {
+            const now = new Date();
+            return now.toTimeString().slice(0,5);
+        }
+
+        function save() {
+            localStorage.setItem('pragati_data', JSON.stringify(window.data));
+            if (userDocRef && isOnline) {
+                setDoc(userDocRef, { data: window.data }, {merge: true}).catch(e=>console.log("Sync Error", e));
+            }
+            renderAll();
+        }
+
         function updateNetworkStatus() {
-            const st = document.getElementById('status-text');
-            const sd = document.getElementById('status-dot');
-            if(navigator.onLine) { st.textContent = "Online"; st.style.color = "var(--success)"; sd.className = "status-dot online-dot"; } 
-            else { st.textContent = "Offline"; st.style.color = "var(--danger)"; sd.className = "status-dot offline-dot"; }
+            const dot = document.getElementById('status-dot');
+            const txt = document.getElementById('status-text');
+            if(navigator.onLine) {
+                dot.className = "status-dot online-dot";
+                txt.textContent = "Online - Synced";
+                isOnline = true;
+                if(window.expenseChartInst && document.getElementById('chart-fallback').style.display === 'block') {
+                   document.getElementById('chart-fallback').style.display = 'none';
+                   document.getElementById('expenseChart').style.display = 'block';
+                }
+            } else {
+                dot.className = "status-dot offline-dot";
+                txt.textContent = "Offline - Local Save";
+                isOnline = false;
+            }
         }
         window.addEventListener('online', updateNetworkStatus);
         window.addEventListener('offline', updateNetworkStatus);
 
-        // Firebase Sync (ফিক্সড: লাইভ ডেটা রিড)
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                document.getElementById("user-status").innerText = "Logged in as: " + user.email;
-                document.getElementById("login-form-container").style.display = "none";
-                document.getElementById("logout-btn").style.display = "inline-block";
+                document.getElementById('user-status').textContent = `Logged in: ${user.email}`;
+                document.getElementById('login-form-container').style.display = 'none';
+                document.getElementById('logout-btn').style.display = 'inline-block';
+                userDocRef = doc(db, "pragati_users", user.uid);
                 
-                try {
-                    const docRef = doc(db, "users", user.uid);
-                    const docSnap = await getDoc(docRef);
-                    if (docSnap.exists()) {
-                        let cloudData = docSnap.data().appData;
-                        if(cloudData) {
-                            window.data = JSON.parse(cloudData);
-                            localStorage.setItem('hisabx_data', JSON.stringify(window.data));
-                            renderAll();
+                if(isOnline) {
+                    const docSnap = await getDoc(userDocRef);
+                    if(docSnap.exists()) {
+                        let cloudData = docSnap.data().data;
+                        // Basic Merge: Keep local array items if cloud is empty, otherwise take cloud
+                        // In a real pro app, you'd merge based on timestamps. Here we prevent total override if cloud is empty.
+                        if(cloudData && cloudData.transactions) {
+                             window.data = cloudData; 
+                             save(); // Saves to localstorage
                         }
                     } else {
-                        syncOnline(); 
+                        save(); // First time sync
                     }
-                } catch(e) { console.error("Sync Error", e); }
+                }
             } else {
-                document.getElementById("user-status").innerText = "Login/Register to Sync Online";
-                document.getElementById("login-form-container").style.display = "block";
-                document.getElementById("logout-btn").style.display = "none";
+                document.getElementById('user-status').textContent = "Login/Register to Sync Online";
+                document.getElementById('login-form-container').style.display = 'block';
+                document.getElementById('logout-btn').style.display = 'none';
+                userDocRef = null;
             }
+            renderAll();
         });
 
-        window.syncOnline = async function() {
-            if(auth.currentUser && navigator.onLine) {
-                try { await setDoc(doc(db, "users", auth.currentUser.uid), { appData: JSON.stringify(window.data), lastSync: new Date().toISOString() }); } catch(e) {}
-            }
-        }
-
-        window.save = function() {
-            localStorage.setItem('hisabx_data', JSON.stringify(window.data));
-            syncOnline(); renderAll();
-        }
-
-        // Navigation
-        window.showModule = function(id) {
-            document.querySelectorAll('.module-view').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            event.currentTarget.classList.add('active');
-            if(window.innerWidth <= 768) toggleMenu();
-        }
         window.toggleMenu = function() {
             document.querySelector('.sidebar').classList.toggle('active-mobile');
             document.querySelector('.sidebar-overlay').classList.toggle('active');
         }
 
-        // Edit Functionality (ফিক্সড)
-        window.getPrefix = function(mod) { return { transactions:'t', office:'off', business:'b', debt:'d', loans:'l', dps:'dps' }[mod]; }
-        window.triggerEdit = function(mod, idx) {
-            let item = window.data[mod][idx];
-            let pre = window.getPrefix(mod);
-            document.querySelector('.main-content').scrollTop = 0;
-
-            if (mod === 'transactions') {
-                document.getElementById('t-edit-idx').value = idx;
-                document.getElementById('t-date').value = item.isoDate || '';
-                document.getElementById('t-time').value = item.isoTime || '';
-                document.getElementById('t-type').value = item.type;
-                updateCategories();
-                document.getElementById('t-account').value = item.accountId;
-                document.getElementById('t-category').value = item.category;
-                document.getElementById('t-amt').value = item.amt;
-                document.getElementById('t-desc').value = item.desc;
-                document.getElementById('t-btn').innerText = "Update Transaction";
-            } else {
-                document.getElementById(pre + '-edit-idx').value = idx;
-                document.getElementById(pre + '-date').value = item.isoDate || '';
-                document.getElementById(pre + '-time').value = item.isoTime || '';
-                
-                if (mod === 'office') {
-                    document.getElementById('off-desc').value = item.desc;
-                    document.getElementById('off-total').value = item.total;
-                    document.getElementById('off-adv').value = item.adv;
-                } else if (mod === 'business') {
-                    document.getElementById('b-item').value = item.item;
-                    document.getElementById('b-qty').value = item.qty;
-                    document.getElementById('b-price').value = item.total / item.qty;
-                } else if (mod === 'debt') {
-                    document.getElementById('d-name').value = item.name;
-                    document.getElementById('d-amt').value = item.amt;
-                    document.getElementById('d-type').value = item.type;
-                } else if (mod === 'loans' || mod === 'dps') {
-                    document.getElementById(pre + '-name').value = item.name;
-                    document.getElementById(pre + '-target').value = item.target;
-                    document.getElementById(pre + '-cycle').value = item.cycle;
-                    document.getElementById(pre + '-inst-amt').value = item.instAmt;
-                    document.getElementById(pre + '-paid-count').value = item.paidCount;
-                }
-                document.getElementById(pre + '-btn').innerText = "Update Record";
-            }
+        window.showModule = function(id) {
+            document.querySelectorAll('.module-view').forEach(m => m.classList.remove('active'));
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            event.currentTarget.classList.add('active');
+            if(window.innerWidth <= 768) toggleMenu();
         }
 
-        window.triggerDelete = function(mod, idx) {
-            if(confirm("Are you sure you want to delete this record?")) {
-                if(mod === 'transactions') {
-                    let t = window.data.transactions[idx];
-                    let acc = window.data.accounts.find(a => a.id === t.accountId);
-                    if(acc) {
-                        if(t.type === 'expense') acc.balance += t.amt; else acc.balance -= t.amt;
-                    }
-                }
-                window.data[mod].splice(idx, 1);
-                save();
-            }
+        window.updateCategories = function() {
+            const type = document.getElementById('t-type').value;
+            const catSelect = document.getElementById('t-category');
+            catSelect.innerHTML = (type === 'income' ? incomeCats : expenseCats).map(c => `<option value="${c}">${c}</option>`).join('');
         }
 
-        // Save Operations (এডিট সাপোর্ট সহ ফিক্সড)
-        window.saveAccount = function() {
-            let n = document.getElementById('acc-name').value; let b = parseFloat(document.getElementById('acc-bal').value);
-            if(!n || isNaN(b)) return alert("Invalid Input");
-            window.data.accounts.push({ id: Date.now(), name: n, balance: b });
-            document.getElementById('acc-name').value = ''; document.getElementById('acc-bal').value = '';
-            save();
-        }
         window.saveBudget = function() {
             window.data.budget.type = document.getElementById('budget-type').value;
-            window.data.budget.amount = parseFloat(document.getElementById('budget-amt').value || 0);
+            window.data.budget.amount = Number(document.getElementById('budget-amt').value) || 0;
             save(); alert("Budget Saved!");
         }
 
-        const catOptions = { expense: ['Food', 'Transport', 'Shopping', 'Bills', 'Others'], income: ['Salary', 'Business', 'Freelance', 'Others'] };
-        window.updateCategories = function() {
-            let t = document.getElementById('t-type').value; let c = document.getElementById('t-category');
-            c.innerHTML = catOptions[t].map(x => `<option value="${x}">${x}</option>`).join('');
-        }
-        window.updateAccountsDropdown = function() {
-            document.getElementById('t-account').innerHTML = window.data.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
-        }
-
-        window.saveTransaction = function() {
-            let idx = parseInt(document.getElementById('t-edit-idx').value);
-            let dVal = document.getElementById('t-date').value || new Date().toISOString().split('T')[0];
-            let tVal = document.getElementById('t-time').value || '12:00';
-            let type = document.getElementById('t-type').value;
-            let accId = parseInt(document.getElementById('t-account').value);
-            let cat = document.getElementById('t-category').value;
-            let amt = parseFloat(document.getElementById('t-amt').value || 0);
-            let desc = document.getElementById('t-desc').value;
-
-            if(amt <= 0) return alert("Enter valid amount");
-            let accIndex = window.data.accounts.findIndex(a => a.id === accId);
-            if(accIndex === -1) return alert("Account not found!");
-
-            if(idx !== -1) {
-                let oldT = window.data.transactions[idx];
-                let oldAccIdx = window.data.accounts.findIndex(a => a.id === oldT.accountId);
-                if(oldAccIdx > -1) {
-                    if(oldT.type === 'expense') window.data.accounts[oldAccIdx].balance += oldT.amt;
-                    else window.data.accounts[oldAccIdx].balance -= oldT.amt;
-                }
-            }
-
-            if(type === 'expense') window.data.accounts[accIndex].balance -= amt; 
-            else window.data.accounts[accIndex].balance += amt;
-
-            let entry = { id: (idx !== -1 ? window.data.transactions[idx].id : Date.now()), date: dVal + ' • ' + tVal, isoDate: dVal, isoTime: tVal, type: type, accountId: accId, accountName: window.data.accounts[accIndex].name, category: cat, amt: amt, desc: desc };
-            
-            if(idx === -1) window.data.transactions.unshift(entry); 
-            else {
-                window.data.transactions[idx] = entry;
-                document.getElementById('t-edit-idx').value = "-1";
-                document.getElementById('t-btn').innerText = "Save Transaction";
-            }
-            document.getElementById('t-amt').value = ''; document.getElementById('t-desc').value = '';
-            save(); alert("Transaction Saved!");
-        }
-
-        window.saveData = function(mod) {
-            let pre = window.getPrefix(mod);
-            let idx = parseInt(document.getElementById(pre + '-edit-idx').value);
-            let dVal = document.getElementById(pre + '-date').value || new Date().toISOString().split('T')[0];
-            let tVal = document.getElementById(pre + '-time').value || '12:00';
-            let dt = dVal + ' • ' + tVal;
-            let entry = { id: Date.now(), date: dt, isoDate: dVal, isoTime: tVal };
-
-            if(mod === 'office') {
-                entry.desc = document.getElementById('off-desc').value;
-                entry.total = parseFloat(document.getElementById('off-total').value || 0);
-                entry.adv = parseFloat(document.getElementById('off-adv').value || 0);
-            } else if(mod === 'business') {
-                entry.item = document.getElementById('b-item').value;
-                entry.qty = parseInt(document.getElementById('b-qty').value || 1);
-                entry.total = entry.qty * parseFloat(document.getElementById('b-price').value || 0);
-            } else if(mod === 'debt') {
-                entry.name = document.getElementById('d-name').value;
-                entry.amt = parseFloat(document.getElementById('d-amt').value || 0);
-                entry.type = document.getElementById('d-type').value;
-            } else if(mod === 'loans' || mod === 'dps') {
-                entry.name = document.getElementById(pre + '-name').value;
-                entry.target = parseFloat(document.getElementById(pre + '-target').value || 0);
-                entry.cycle = document.getElementById(pre + '-cycle').value;
-                entry.instAmt = parseFloat(document.getElementById(pre + '-inst-amt').value || 0);
-                entry.paidCount = parseInt(document.getElementById(pre + '-paid-count').value || 0);
-            }
-
-            if(idx === -1) window.data[mod].unshift(entry);
-            else {
-                if(window.data[mod][idx].id) entry.id = window.data[mod][idx].id;
-                window.data[mod][idx] = entry;
-                document.getElementById(pre + '-btn').innerText = "Save Record";
-            }
-
-            document.querySelectorAll(`#${mod} input:not([type='hidden'])`).forEach(i => i.value = ''); 
-            document.getElementById(pre + '-edit-idx').value = "-1"; 
+        window.saveAccount = function() {
+            let n = document.getElementById('acc-name').value;
+            let b = Number(document.getElementById('acc-bal').value) || 0;
+            if(!n) return alert("Enter account name!");
+            window.data.accounts.push({ name: n, balance: b });
+            document.getElementById('acc-name').value = '';
+            document.getElementById('acc-bal').value = '';
             save();
         }
 
-        // Render functions
-        const btnHtml = (mod, i) => `<div class="action-btns"><i class="fas fa-edit edit-btn" onclick="triggerEdit('${mod}', ${i})"></i> <i class="fas fa-trash del-btn" onclick="triggerDelete('${mod}', ${i})"></i></div>`;
-        const currency = (amt) => '৳' + amt.toLocaleString('en-IN');
-
-        window.renderAll = function() {
-            let prof = window.data.profile;
-            document.getElementById('dash-greeting').innerText = `Hello, ${prof.name.split(' ')[0] || 'User'}!`;
-            document.getElementById('dash-subtitle').innerText = prof.biz;
-            document.getElementById('prof-img').src = prof.img;
-            document.getElementById('set-name').value = prof.name;
-            document.getElementById('set-biz').value = prof.biz;
-            document.getElementById('set-loc').value = prof.loc;
-
-            document.getElementById('budget-type').value = window.data.budget.type;
-            document.getElementById('budget-amt').value = window.data.budget.amount || '';
-
-            updateAccountsDropdown();
-
-            // Tables
-            let actb = ''; let accTotal = 0;
-            window.data.accounts.forEach((a,i) => { actb += `<tr><td>${a.name}</td><td style="color:var(--accent-gold); font-weight:600;">${currency(a.balance)}</td><td>${btnHtml('accounts', i)}</td></tr>`; accTotal += a.balance; });
-            document.getElementById('acc-table').innerHTML = actb;
-            document.getElementById('acc-summary-cards').innerHTML = `<div class="card"><div style="color:var(--text-muted); font-size:0.9rem;">Gross Balance</div><div class="card-value">${currency(accTotal)}</div></div>`;
-
-            let ttb = ''; window.data.transactions.forEach((t,i) => {
-                let clr = t.type === 'income' ? 'var(--success)' : 'var(--danger)';
-                ttb += `<tr><td><div style="font-size:0.8rem;color:var(--text-muted)">${t.date}</div><div style="font-weight:500">${t.accountName}</div></td><td><div class="badge ${t.type==='income'?'badge-success':'badge-warning'}">${t.category}</div><div style="font-size:0.8rem; margin-top:3px;">${t.desc}</div></td><td style="color:${clr}; font-weight:600;">${t.type==='income'?'+':'-'}${currency(t.amt)}</td><td>${btnHtml('transactions', i)}</td></tr>`;
-            }); document.getElementById('t-table').innerHTML = ttb;
-
-            let oftb = ''; window.data.office.forEach((o,i) => { oftb += `<tr><td><div style="font-weight:500">${o.desc}</div><div style="font-size:0.8rem;color:var(--text-muted)">${o.date}</div></td><td>${currency(o.total)}</td><td>${currency(o.adv)}</td><td style="color:var(--danger)">${currency(o.total - o.adv)}</td><td>${btnHtml('office', i)}</td></tr>`; }); document.getElementById('off-table').innerHTML = oftb;
-            
-            let btb = ''; window.data.business.forEach((b,i) => { btb += `<tr><td><div style="font-weight:500">${b.item}</div><div style="font-size:0.8rem;color:var(--text-muted)">${b.date}</div></td><td>${b.qty}</td><td style="color:var(--success)">${currency(b.total)}</td><td>${btnHtml('business', i)}</td></tr>`; }); document.getElementById('b-table').innerHTML = btb;
-            
-            let dtb = ''; window.data.debt.forEach((d,i) => { dtb += `<tr><td><div style="font-weight:500">${d.name}</div><div style="font-size:0.8rem;color:var(--text-muted)">${d.date}</div></td><td><span class="badge ${d.type==='receivable'?'badge-success':'badge-warning'}">${d.type.toUpperCase()}</span></td><td style="font-weight:600">${currency(d.amt)}</td><td>${btnHtml('debt', i)}</td></tr>`; }); document.getElementById('d-table').innerHTML = dtb;
-            
-            let ltb = ''; window.data.loans.forEach((l,i) => { 
-                let paid = l.instAmt * l.paidCount; let pct = (paid/l.target)*100;
-                ltb += `<tr><td><div style="font-weight:500">${l.name}</div><div style="font-size:0.8rem;color:var(--text-muted)">${l.cycle}</div></td><td>${currency(l.target)}</td><td><div class="prog-bg"><div class="prog-fill" style="width:${pct}%"></div></div><div style="font-size:0.8rem; margin-top:3px;">${currency(paid)}</div></td><td style="color:var(--danger)">${currency(l.target - paid)}</td><td>${btnHtml('loans', i)}</td></tr>`;
-            }); document.getElementById('l-table').innerHTML = ltb;
-            
-            let dpstb = ''; window.data.dps.forEach((d,i) => { 
-                let saved = d.instAmt * d.paidCount; let pct = (saved/d.target)*100;
-                dpstb += `<tr><td><div style="font-weight:500">${d.name}</div><div style="font-size:0.8rem;color:var(--text-muted)">${d.cycle}</div></td><td>${currency(d.target)}</td><td><div class="prog-bg"><div class="prog-fill" style="width:${pct}%"></div></div><div style="font-size:0.8rem; margin-top:3px;">${currency(saved)}</div></td><td style="color:var(--warning)">${currency(d.target - saved)}</td><td>${btnHtml('dps', i)}</td></tr>`;
-            }); document.getElementById('dps-table').innerHTML = dpstb;
-
-            generateReport();
-            
-            let cm = new Date().toISOString().split('T')[0].substring(0,7);
-            renderChart(cm);
-            
-            let spent = window.data.transactions.filter(t => t.type==='expense' && t.isoDate && t.isoDate.startsWith(cm)).reduce((sum,t)=>sum+t.amt,0);
-            let budget = window.data.budget.amount || 0;
-            document.getElementById('budget-title-display').innerText = `Budget Status (${window.data.budget.type})`;
-            document.getElementById('budget-spent-text').innerText = `Spent: ${currency(spent)}`;
-            document.getElementById('budget-total-text').innerText = `Budget: ${currency(budget)}`;
-            document.getElementById('budget-prog-fill').style.width = budget ? Math.min((spent/budget)*100, 100) + '%' : '0%';
-            if(budget && spent > budget) document.getElementById('budget-prog-fill').style.background = 'var(--danger)'; else document.getElementById('budget-prog-fill').style.background = 'var(--accent-gold)';
+        window.deleteAccount = function(i) {
+            if(confirm("Delete this account?")) { window.data.accounts.splice(i,1); save(); }
         }
 
-        window.generateReport = function() {
-            let rtb = '';
-            let inc = window.data.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amt,0);
-            let exp = window.data.transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amt,0);
-            rtb += `<tr><td>Total Income</td><td><span class="badge badge-success">INFLOW</span></td><td style="color:var(--success)">${currency(inc)}</td></tr>`;
-            rtb += `<tr><td>Total Expenses</td><td><span class="badge badge-warning">OUTFLOW</span></td><td style="color:var(--danger)">${currency(exp)}</td></tr>`;
-            document.getElementById('report-table').innerHTML = rtb;
-        }
+        window.saveTransaction = function() {
+            let d = document.getElementById('t-date').value;
+            let tm = document.getElementById('t-time').value;
+            let ty = document.getElementById('t-type').value;
+            let acc = document.getElementById('t-account').value;
+            let cat = document.getElementById('t-category').value;
+            let amt = Number(document.getElementById('t-amt').value);
+            let desc = document.getElementById('t-desc').value;
+            let idx = document.getElementById('t-edit-idx').value;
 
-        // Chart.js (ফিক্সড: অফলাইন স্কিপ)
-        window.renderChart = function(currentMonth) {
-            if (typeof Chart === 'undefined') {
-                let chartCont = document.getElementById('expenseChart');
-                if(chartCont && chartCont.parentElement) chartCont.parentElement.innerHTML = "<p style='text-align:center; color:var(--text-muted); margin-top:50px;'>Chart is unavailable offline</p>";
-                return; 
+            if(!d || !acc || !amt) return alert("Fill required fields!");
+
+            let accIdx = window.data.accounts.findIndex(a => a.name === acc);
+            if(accIdx > -1) {
+                if(idx > -1) {
+                    let oldT = window.data.transactions[idx];
+                    let oldAccIdx = window.data.accounts.findIndex(a => a.name === oldT.acc);
+                    if(oldAccIdx > -1) window.data.accounts[oldAccIdx].balance += (oldT.type === 'expense' ? oldT.amt : -oldT.amt);
+                }
+                window.data.accounts[accIdx].balance += (ty === 'income' ? amt : -amt);
             }
-            let expenses = window.data.transactions.filter(t => t.type === 'expense' && t.isoDate && t.isoDate.startsWith(currentMonth));
-            let catTotals = {}; expenses.forEach(t => { catTotals[t.category] = (catTotals[t.category] || 0) + t.amt; });
-            let labels = Object.keys(catTotals); let values = Object.values(catTotals); let colors = ['#D4AF37', '#FF5252', '#4CAF50', '#2196F3', '#9C27B0', '#FF9800', '#00BCD4'];
-            if(expenseChartInstance) expenseChartInstance.destroy();
-            const ctx = document.getElementById('expenseChart');
-            if(!ctx) return;
-            expenseChartInstance = new Chart(ctx.getContext('2d'), { type: 'doughnut', data: { labels: labels, datasets: [{ data: values, backgroundColor: colors.slice(0, labels.length), borderWidth: 1, borderColor: '#000' }] }, options: { plugins: { legend: { position: 'right', labels: { color: '#fff' } } }, maintainAspectRatio: false } });
+
+            let tObj = { date: d, time: tm, type: ty, acc, cat, amt, desc };
+            if(idx > -1) { window.data.transactions[idx] = tObj; document.getElementById('t-edit-idx').value = "-1"; document.getElementById('t-btn').innerText = "Save Transaction"; document.getElementById('t-cancel-btn').style.display = "none"; }
+            else window.data.transactions.push(tObj);
+
+            document.getElementById('t-amt').value = '';
+            document.getElementById('t-desc').value = '';
+            save();
         }
 
-        // Profile, Security & Others
-        window.saveProfile = function() { window.data.profile.name = document.getElementById('set-name').value; window.data.profile.biz = document.getElementById('set-biz').value; window.data.profile.loc = document.getElementById('set-loc').value; save(); alert("Profile Updated!"); }
-        window.uploadImg = function(e) { let r = new FileReader(); r.onload = ev => { window.data.profile.img = ev.target.result; save(); }; r.readAsDataURL(e.target.files[0]); }
-        window.managePin = function(action) { if(action === 'set') { let p = document.getElementById('new-pin-input').value; if(p.length === 4) { localStorage.setItem('hisabx_pin', p); alert("PIN Set Successfully!"); document.getElementById('new-pin-input').value=''; } else alert("Enter 4 digits."); } else { localStorage.removeItem('hisabx_pin'); alert("PIN Removed!"); } }
-        window.verifyPin = function() { let p = document.getElementById('login-pin-input').value; if(p === localStorage.getItem('hisabx_pin')) document.getElementById('pin-lock-screen').classList.remove('active'); else { document.getElementById('pin-error').style.display = 'block'; setTimeout(()=>document.getElementById('pin-error').style.display='none', 2000); } }
-        
-        window.backupData = function() { try { const blob = new Blob([JSON.stringify(window.data)], {type: "application/json"}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.style.display = 'none'; a.href = url; a.download = "Pragati_Ledger_Backup.json"; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(() => URL.revokeObjectURL(url), 100); } catch (e) { alert("Backup failed"); } }
-        window.importData = function(e) { const reader = new FileReader(); reader.onload = (ev) => { window.data = JSON.parse(ev.target.result); save(); location.reload(); }; reader.readAsText(e.target.files[0]); }
+        window.cancelEdit = function(prefix) {
+            document.getElementById(prefix + '-edit-idx').value = "-1";
+            let btn = document.getElementById(prefix + '-btn');
+            if(btn) btn.innerText = "Save / Add Record";
+            document.getElementById(prefix + '-cancel-btn').style.display = "none";
+            // Clears form loosely
+            document.querySelectorAll(`#${prefix} input[type="text"], #${prefix} input[type="number"]`).forEach(i => i.value = '');
+        }
+
+        window.editTransaction = function(i) {
+            let t = window.data.transactions[i];
+            document.getElementById('t-date').value = t.date;
+            document.getElementById('t-time').value = t.time;
+            document.getElementById('t-type').value = t.type;
+            updateCategories();
+            document.getElementById('t-account').value = t.acc;
+            document.getElementById('t-category').value = t.cat;
+            document.getElementById('t-amt').value = t.amt;
+            document.getElementById('t-desc').value = t.desc;
+            document.getElementById('t-edit-idx').value = i;
+            document.getElementById('t-btn').innerText = "Update Transaction";
+            document.getElementById('t-cancel-btn').style.display = "block";
+            showModule('transactions');
+        }
+
+        window.deleteTransaction = function(i) {
+            if(!confirm("Delete transaction?")) return;
+            let t = window.data.transactions[i];
+            let accIdx = window.data.accounts.findIndex(a => a.name === t.acc);
+            if(accIdx > -1) window.data.accounts[accIdx].balance += (t.type === 'expense' ? t.amt : -t.amt);
+            window.data.transactions.splice(i,1);
+            save();
+        }
+
+        window.saveData = function(mod) {
+            let obj = {};
+            let prefix = mod === 'office' ? 'off' : mod === 'business' ? 'b' : mod === 'debt' ? 'd' : mod === 'loans' ? 'l' : 'dps';
+            let idx = document.getElementById(prefix + '-edit-idx').value;
+
+            if(mod === 'office') obj = { date: document.getElementById('off-date').value, time: document.getElementById('off-time').value, desc: document.getElementById('off-desc').value, total: Number(document.getElementById('off-total').value), adv: Number(document.getElementById('off-adv').value) };
+            if(mod === 'business') obj = { date: document.getElementById('b-date').value, time: document.getElementById('b-time').value, item: document.getElementById('b-item').value, qty: Number(document.getElementById('b-qty').value), price: Number(document.getElementById('b-price').value) };
+            if(mod === 'debt') obj = { date: document.getElementById('d-date').value, time: document.getElementById('d-time').value, name: document.getElementById('d-name').value, amt: Number(document.getElementById('d-amt').value), type: document.getElementById('d-type').value };
+            if(mod === 'loans' || mod === 'dps') {
+                obj = {
+                    date: document.getElementById(prefix+'-date').value, time: document.getElementById(prefix+'-time').value,
+                    name: document.getElementById(prefix+'-name').value, target: Number(document.getElementById(prefix+'-target').value),
+                    cycle: document.getElementById(prefix+'-cycle').value, instAmt: Number(document.getElementById(prefix+'-inst-amt').value),
+                    paidCount: Number(document.getElementById(prefix+'-paid-count').value)
+                };
+            }
+
+            if(idx > -1) { window.data[mod][idx] = obj; document.getElementById(prefix+'-edit-idx').value = "-1"; document.getElementById(prefix+'-btn').innerText = "Add Record"; document.getElementById(prefix+'-cancel-btn').style.display="none";}
+            else window.data[mod].push(obj);
+
+            save(); cancelEdit(prefix);
+        }
+
+        window.editData = function(mod, i) {
+            let obj = window.data[mod][i];
+            let prefix = mod === 'office' ? 'off' : mod === 'business' ? 'b' : mod === 'debt' ? 'd' : mod === 'loans' ? 'l' : 'dps';
+            
+            if(mod === 'office') { document.getElementById('off-date').value=obj.date; document.getElementById('off-time').value=obj.time; document.getElementById('off-desc').value=obj.desc; document.getElementById('off-total').value=obj.total; document.getElementById('off-adv').value=obj.adv; }
+            if(mod === 'business') { document.getElementById('b-date').value=obj.date; document.getElementById('b-time').value=obj.time; document.getElementById('b-item').value=obj.item; document.getElementById('b-qty').value=obj.qty; document.getElementById('b-price').value=obj.price; }
+            if(mod === 'debt') { document.getElementById('d-date').value=obj.date; document.getElementById('d-time').value=obj.time; document.getElementById('d-name').value=obj.name; document.getElementById('d-amt').value=obj.amt; document.getElementById('d-type').value=obj.type; }
+            if(mod === 'loans' || mod === 'dps') { document.getElementById(prefix+'-date').value=obj.date; document.getElementById(prefix+'-time').value=obj.time; document.getElementById(prefix+'-name').value=obj.name; document.getElementById(prefix+'-target').value=obj.target; document.getElementById(prefix+'-cycle').value=obj.cycle; document.getElementById(prefix+'-inst-amt').value=obj.instAmt; document.getElementById(prefix+'-paid-count').value=obj.paidCount; }
+
+            document.getElementById(prefix+'-edit-idx').value = i;
+            document.getElementById(prefix+'-btn').innerText = "Update Record";
+            document.getElementById(prefix+'-cancel-btn').style.display = "block";
+            showModule(mod);
+        }
+
+        window.delData = function(mod, i) { if(confirm("Delete this record?")) { window.data[mod].splice(i,1); save(); } }
+
+        window.uploadImg = function(e) {
+            let reader = new FileReader();
+            reader.onload = function(event) {
+                window.data.profile.img = event.target.result;
+                document.getElementById('prof-img').src = event.target.result;
+                save();
+            }
+            reader.readAsDataURL(e.target.files[0]);
+        }
+
+        window.saveProfile = function() {
+            window.data.profile.name = document.getElementById('set-name').value;
+            window.data.profile.biz = document.getElementById('set-biz').value;
+            window.data.profile.loc = document.getElementById('set-loc').value;
+            save(); alert("Profile Updated!");
+        }
+
+        window.managePin = function(action) {
+            if(action === 'set') {
+                let p = document.getElementById('new-pin-input').value;
+                if(p.length === 4) { localStorage.setItem('pragati_pin', btoa(p)); alert("PIN Set Successfully!"); document.getElementById('new-pin-input').value=''; }
+                else alert("Enter 4 digits!");
+            } else {
+                localStorage.removeItem('pragati_pin'); alert("PIN Removed!");
+            }
+        }
+
+        window.verifyPin = function() {
+            let p = document.getElementById('login-pin-input').value;
+            let saved = localStorage.getItem('pragati_pin');
+            if(btoa(p) === saved) {
+                document.getElementById('pin-lock-screen').style.display = 'none';
+                document.getElementById('app-content').classList.add('unlocked');
+            } else {
+                document.getElementById('pin-error').style.display = 'block';
+                setTimeout(()=> document.getElementById('pin-error').style.display = 'none', 2000);
+            }
+        }
+
+        window.backupData = function() {
+            try {
+                const blob = new Blob([JSON.stringify(window.data)], {type: "application/json"});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none'; a.href = url; a.download = "Pragati_Ledger_Backup.json";
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 100);
+            } catch (e) { alert("Backup failed"); }
+        }
+
+        window.importData = function(e) {
+            const reader = new FileReader();
+            reader.onload = (ev) => { window.data = JSON.parse(ev.target.result); save(); location.reload(); };
+            reader.readAsText(e.target.files[0]);
+        }
 
         window.emailLogin = function() { let e = document.getElementById('auth-email').value; let p = document.getElementById('auth-password').value; if(e && p) signInWithEmailAndPassword(auth, e, p).then(()=>alert("Logged In!")).catch(er=>alert(er.message)); }
         window.emailRegister = function() { let e = document.getElementById('auth-email').value; let p = document.getElementById('auth-password').value; if(e && p) createUserWithEmailAndPassword(auth, e, p).then(()=>alert("Registered!")).catch(er=>alert(er.message)); }
         window.logout = function() { signOut(auth).then(()=>{ alert("Logged out"); location.reload(); }); }
 
-        function initApp() {
-            updateNetworkStatus(); updateCategories(); renderAll();
-            if(localStorage.getItem('hisabx_pin')) document.getElementById('pin-lock-screen').classList.add('active');
+        function renderAll() {
+            document.getElementById('dash-greeting').innerText = window.data.profile.name ? `Hello, ${window.data.profile.name}` : "Welcome to Pragati Ledger";
+            document.getElementById('dash-subtitle').innerText = window.data.profile.biz || "";
+            if(window.data.profile.img) document.getElementById('prof-img').src = window.data.profile.img;
+            document.getElementById('set-name').value = window.data.profile.name;
+            document.getElementById('set-biz').value = window.data.profile.biz;
+            document.getElementById('set-loc').value = window.data.profile.loc;
+            document.getElementById('budget-type').value = window.data.budget.type || 'Monthly';
+            document.getElementById('budget-amt').value = window.data.budget.amount || '';
+
+            
+            let accHtml = '', accOptions = '<option value="" disabled selected>Select Account</option>', totalAssets = 0;
+
+            window.data.accounts.forEach((a, i) => {
+            totalAssets += a.balance;
+            accHtml += `<tr><td>${a.name}</td><td style="color:var(--accent-gold); font-weight:600;">৳${a.balance}</td><td><i class="fas fa-trash del-btn" onclick="deleteAccount(${i})"></i></td></tr>`;
+            accOptions += `<option value="${a.name}">${a.name}</option>`;
+            });
+            document.getElementById('acc-table').innerHTML = accHtml;
+            document.getElementById('t-account').innerHTML = accOptions;
+            
+            document.getElementById('acc-summary-cards').innerHTML = `
+                <div class="card"><div style="font-size:0.85rem; color:var(--text-muted);">Total Assets</div><div class="card-value">৳${totalAssets}</div></div>
+            ` + window.data.accounts.map(a => `<div class="card"><div style="font-size:0.85rem; color:var(--text-muted);">${a.name}</div><div class="card-value" style="font-size:1.1rem;">৳${a.balance}</div></div>`).join('');
+
+            let tHtml = '', mSpent = 0, catExp = {};
+            const currMonth = getLocalISODate().slice(0, 7); // Safe local month calculation
+            
+            window.data.transactions.slice().reverse().forEach((t, index) => {
+                let realIdx = window.data.transactions.length - 1 - index;
+                let isExp = t.type === 'expense';
+                let sign = isExp ? '-' : '+';
+                let cClass = isExp ? 'danger' : 'success';
+                tHtml += `<tr><td>${t.date}<br><span style="font-size:0.7rem; color:var(--text-muted);">${t.acc}</span></td>
+                <td><span class="badge badge-info">${t.cat}</span><br><span style="font-size:0.7rem;">${t.desc}</span></td>
+                <td style="color:var(--${cClass}); font-weight:600;">${sign}৳${t.amt}</td>
+                <td><div class="action-btns"><i class="fas fa-pen edit-btn" onclick="editTransaction(${realIdx})"></i><i class="fas fa-trash del-btn" onclick="deleteTransaction(${realIdx})"></i></div></td></tr>`;
+                
+                if(isExp && t.date.startsWith(currMonth)) {
+                    mSpent += t.amt;
+                    catExp[t.cat] = (catExp[t.cat] || 0) + t.amt;
+                }
+            });
+            document.getElementById('t-table').innerHTML = tHtml;
+
+            let bAmt = window.data.budget.amount || 0;
+            document.getElementById('budget-title-display').innerText = `${window.data.budget.type || 'Monthly'} Budget Status`;
+            document.getElementById('budget-spent-text').innerText = `Spent: ৳${mSpent}`;
+            document.getElementById('budget-total-text').innerText = `Budget: ৳${bAmt}`;
+            let pFill = document.getElementById('budget-prog-fill');
+            let pct = bAmt > 0 ? Math.min((mSpent / bAmt) * 100, 100) : 0;
+            pFill.style.width = pct + '%';
+            pFill.style.background = pct > 90 ? 'var(--danger)' : pct > 75 ? 'var(--warning)' : 'var(--accent-gold)';
+
+            document.getElementById('off-table').innerHTML = window.data.office.map((o,i)=> `<tr><td>${o.desc}<br><span style="font-size:0.7rem; color:var(--text-muted);">${o.date}</span></td><td>৳${o.total}</td><td style="color:var(--success)">৳${o.adv}</td><td style="color:var(--danger)">৳${o.total - o.adv}</td><td><div class="action-btns"><i class="fas fa-pen edit-btn" onclick="editData('office',${i})"></i><i class="fas fa-trash del-btn" onclick="delData('office',${i})"></i></div></td></tr>`).join('');
+            document.getElementById('b-table').innerHTML = window.data.business.map((b,i)=> `<tr><td>${b.item}<br><span style="font-size:0.7rem; color:var(--text-muted);">${b.date}</span></td><td>${b.qty}</td><td style="color:var(--accent-gold)">৳${b.qty * b.price}</td><td><div class="action-btns"><i class="fas fa-pen edit-btn" onclick="editData('business',${i})"></i><i class="fas fa-trash del-btn" onclick="delData('business',${i})"></i></div></td></tr>`).join('');
+            document.getElementById('d-table').innerHTML = window.data.debt.map((d,i)=> `<tr><td>${d.name}<br><span style="font-size:0.7rem; color:var(--text-muted);">${d.date}</span></td><td><span class="badge ${d.type==='receivable'?'badge-success':'badge-danger'}">${d.type}</span></td><td>৳${d.amt}</td><td><div class="action-btns"><i class="fas fa-pen edit-btn" onclick="editData('debt',${i})"></i><i class="fas fa-trash del-btn" onclick="delData('debt',${i})"></i></div></td></tr>`).join('');
+            
+            const renderLoanDps = (arr, mod) => arr.map((item,i)=> {
+                let saved = item.instAmt * item.paidCount;
+                let pct = item.target > 0 ? (saved / item.target) * 100 : 0;
+                return `<tr><td>${item.name}<br><span class="badge badge-info">${item.cycle}</span></td><td>৳${item.target}</td>
+                <td>৳${saved} (${item.paidCount})<br><div class="prog-bg"><div class="prog-fill" style="width:${pct}%"></div></div></td>
+                <td style="color:var(--danger)">৳${item.target - saved}</td>
+                <td><div class="action-btns"><i class="fas fa-pen edit-btn" onclick="editData('${mod}',${i})"></i><i class="fas fa-trash del-btn" onclick="delData('${mod}',${i})"></i></div></td></tr>`;
+            }).join('');
+            document.getElementById('l-table').innerHTML = renderLoanDps(window.data.loans, 'loans');
+            document.getElementById('dps-table').innerHTML = renderLoanDps(window.data.dps, 'dps');
+
+            if(window.expenseChartInst) window.expenseChartInst.destroy();
+            if(!isOnline && typeof Chart === 'undefined') {
+                document.getElementById('expenseChart').style.display = 'none';
+                document.getElementById('chart-fallback').style.display = 'block';
+            } else if (Object.keys(catExp).length > 0) {
+                document.getElementById('expenseChart').style.display = 'block';
+                document.getElementById('chart-fallback').style.display = 'none';
+                const ctx = document.getElementById('expenseChart').getContext('2d');
+                window.expenseChartInst = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: { labels: Object.keys(catExp), datasets: [{ data: Object.values(catExp), backgroundColor: ['#D4AF37','#FF5252','#2196F3','#4CAF50','#FFC107','#9C27B0','#00BCD4','#FF9800','#795548'], borderWidth: 0 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#fff', font: { size: 10 } } } }, cutout: '70%' }
+                });
+            }
         }
-        initApp();
+
+        function initApp() {
+            updateNetworkStatus(); updateCategories();
+            document.getElementById('t-date').value = getLocalISODate();
+            document.getElementById('t-time').value = getLocalTime();
+            document.getElementById('off-date').value = getLocalISODate();
+            document.getElementById('off-time').value = getLocalTime();
+            document.getElementById('b-date').value = getLocalISODate();
+            document.getElementById('b-time').value = getLocalTime();
+            document.getElementById('d-date').value = getLocalISODate();
+            document.getElementById('d-time').value = getLocalTime();
+            document.getElementById('l-date').value = getLocalISODate();
+            document.getElementById('l-time').value = getLocalTime();
+            document.getElementById('dps-date').value = getLocalISODate();
+            document.getElementById('dps-time').value = getLocalTime();
+
+      // initApp() ফাংশনের নিচের দিকে এই অংশটুকু আপডেট করুন:
+        if(localStorage.getItem('pragati_data')) {
+        window.data = JSON.parse(localStorage.getItem('pragati_data'));
+        } else if (localStorage.getItem('hisabx_data')) {
+        // পুরোনো ডেটা রিকভারি
+        window.data = JSON.parse(localStorage.getItem('hisabx_data'));
+        localStorage.setItem('pragati_data', JSON.stringify(window.data)); // নতুন নামে সেভ করে নেওয়া
+        }
+renderAll();
+            
+            if(localStorage.getItem('pragati_pin')) {
+                document.getElementById('pin-lock-screen').style.display = 'flex';
+            } else {
+                document.getElementById('app-content').classList.add('unlocked');
+                document.getElementById('pin-lock-screen').style.display = 'none';
+            }
+        }
+
+        window.onload = initApp;
     </script>
 </body>
 </html>
