@@ -12,8 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-    
-    <style>
+        <style>
         :root {
             --bg-primary: #000000;
             --bg-secondary: #111111;
@@ -926,6 +925,96 @@
                     .catch(err => console.log('Service Worker Registration Failed!', err));
             });
         }
+        window.saveData = function() {
+    localStorage.setItem('pragati_data', JSON.stringify(window.data));
+    if(typeof firebase !== 'undefined') {
+        firebase.database().ref('pragati_data').set(window.data);
+    }
+    window.renderAll();
+};
+
+window.loadFirebase = function() {
+    if(typeof firebase !== 'undefined') {
+        const dbRef = firebase.database().ref('pragati_data');
+        dbRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                window.data = data;
+                localStorage.setItem('pragati_data', JSON.stringify(data));
+                window.renderAll();
+            }
+        });
+    }
+};
+
+window.renderAll = function() {
+    if(typeof renderDashboard === 'function') renderDashboard();
+    if(typeof renderOffice === 'function') renderOffice();
+    if(typeof renderBusiness === 'function') renderBusiness();
+    if(typeof renderDebt === 'function') renderDebt();
+    if(typeof renderLoans === 'function') renderLoans();
+    if(typeof renderReports === 'function') renderReports();
+};
+
+window.renderOffice = function() {
+    const tbody = document.getElementById('office-table-body');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    let total = 0;
+    if(window.data && window.data.office) {
+        window.data.office.forEach((item, index) => {
+            const amt = parseFloat(item.amount) || 0;
+            total += amt;
+            tbody.innerHTML += `<tr><td>${item.date}</td><td>${item.desc}</td><td>৳${amt.toFixed(2)}</td></tr>`;
+        });
+    }
+    tbody.innerHTML += `<tr style="font-weight: bold; background: rgba(212, 175, 55, 0.1);"><td colspan="2" style="text-align: right; color: #D4AF37;">সর্বমোট:</td><td style="color: #D4AF37;">৳${total.toFixed(2)}</td></tr>`;
+};
+
+window.renderLoans = function() {
+    const tbody = document.getElementById('loans-table-body');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    let total = 0;
+    if(window.data && window.data.loans) {
+        window.data.loans.forEach((item, index) => {
+            const amt = parseFloat(item.amount) || 0;
+            total += amt;
+            tbody.innerHTML += `<tr><td>${item.date}</td><td>${item.desc}</td><td>৳${amt.toFixed(2)}</td></tr>`;
+        });
+    }
+    tbody.innerHTML += `<tr style="font-weight: bold; background: rgba(212, 175, 55, 0.1);"><td colspan="2" style="text-align: right; color: #D4AF37;">মোট লোন:</td><td style="color: #D4AF37;">৳${total.toFixed(2)}</td></tr>`;
+};
+
+window.renderDebt = function() {
+    const tbody = document.getElementById('debt-table-body');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    let total = 0;
+    if(window.data && window.data.debt) {
+        window.data.debt.forEach((item, index) => {
+            const amt = parseFloat(item.amount) || 0;
+            total += amt;
+            tbody.innerHTML += `<tr><td>${item.date}</td><td>${item.desc}</td><td>৳${amt.toFixed(2)}</td></tr>`;
+        });
+    }
+    tbody.innerHTML += `<tr style="font-weight: bold; background: rgba(212, 175, 55, 0.1);"><td colspan="2" style="text-align: right; color: #D4AF37;">মোট ডেবট:</td><td style="color: #D4AF37;">৳${total.toFixed(2)}</td></tr>`;
+};
+
+window.renderBusiness = function() {
+    const tbody = document.getElementById('business-table-body');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    let total = 0;
+    if(window.data && window.data.business) {
+        window.data.business.forEach((item, index) => {
+            const amt = parseFloat(item.amount) || 0;
+            total += amt;
+            tbody.innerHTML += `<tr><td>${item.date}</td><td>${item.desc}</td><td>৳${amt.toFixed(2)}</td></tr>`;
+        });
+    }
+    tbody.innerHTML += `<tr style="font-weight: bold; background: rgba(212, 175, 55, 0.1);"><td colspan="2" style="text-align: right; color: #D4AF37;">মোট বিজনেস:</td><td style="color: #D4AF37;">৳${total.toFixed(2)}</td></tr>`;
+    };
     </script>
 </body>
 </html>
