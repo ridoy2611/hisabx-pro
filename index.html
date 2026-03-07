@@ -12,7 +12,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-        <style>
+    
+    <style>
         :root {
             --bg-primary: #000000;
             --bg-secondary: #111111;
@@ -925,96 +926,124 @@
                     .catch(err => console.log('Service Worker Registration Failed!', err));
             });
         }
-        window.saveData = function() {
+    </script>
+<script>
+if (window.data && window.data.loans) {
+    window.data.loans.forEach(item => {
+        if (item.amount == 1500 || item.amount == "1500" || item.instAmt == 1500 || item.instAmt == "1500") {
+            if (item.amount !== undefined) item.amount = 3500;
+            if (item.instAmt !== undefined) item.instAmt = 3500;
+        }
+    });
     localStorage.setItem('pragati_data', JSON.stringify(window.data));
-    if(typeof firebase !== 'undefined') {
+}
+
+// ২. সেভ ফাংশন (Add Record যেন নষ্ট না হয় তার জন্য সুরক্ষিত লজিক)
+const oldSaveLocal = window.saveLocal;
+window.saveLocal = function() {
+    if (typeof oldSaveLocal === 'function') oldSaveLocal(); // আপনার অরিজিনাল সেভ কাজ করবে
+    else localStorage.setItem('pragati_data', JSON.stringify(window.data));
+    
+    // ফায়ারবেসে ডেটা পাঠানো (দুই ডিভাইসে সিঙ্ক)
+    if(typeof firebase !== 'undefined' && firebase.database) {
         firebase.database().ref('pragati_data').set(window.data);
     }
-    window.renderAll();
 };
 
+const oldSaveData = window.saveData;
+window.saveData = function(module) {
+    if (typeof oldSaveData === 'function' && oldSaveData.toString().indexOf('firebase') === -1) {
+        oldSaveData(module);
+    } else {
+        localStorage.setItem('pragati_data', JSON.stringify(window.data));
+    }
+    
+    if(typeof firebase !== 'undefined' && firebase.database) {
+        firebase.database().ref('pragati_data').set(window.data);
+    }
+    if (typeof window.renderAll === 'function') window.renderAll();
+};
+
+// ৩. রিয়েল-টাইম আপডেটের জন্য loadFirebase (অন্য ডিভাইস থেকে ডেটা রিসিভ)
 window.loadFirebase = function() {
-    if(typeof firebase !== 'undefined') {
+    if(typeof firebase !== 'undefined' && firebase.database) {
         const dbRef = firebase.database().ref('pragati_data');
         dbRef.on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
                 window.data = data;
                 localStorage.setItem('pragati_data', JSON.stringify(data));
-                window.renderAll();
+                if (typeof window.renderAll === 'function') window.renderAll();
             }
         });
     }
 };
 
-window.renderAll = function() {
-    if(typeof renderDashboard === 'function') renderDashboard();
-    if(typeof renderOffice === 'function') renderOffice();
-    if(typeof renderBusiness === 'function') renderBusiness();
-    if(typeof renderDebt === 'function') renderDebt();
-    if(typeof renderLoans === 'function') renderLoans();
-    if(typeof renderReports === 'function') renderReports();
-};
-
+// ৪. অফিস লেজার রেন্ডার ও টোটাল
 window.renderOffice = function() {
-    const tbody = document.getElementById('office-table-body');
+    const tbody = document.getElementById('office-table-body') || document.getElementById('off-table');
     if(!tbody) return;
     tbody.innerHTML = '';
-    let total = 0;
+    let sum = 0;
     if(window.data && window.data.office) {
-        window.data.office.forEach((item, index) => {
-            const amt = parseFloat(item.amount) || 0;
-            total += amt;
-            tbody.innerHTML += `<tr><td>${item.date}</td><td>${item.desc}</td><td>৳${amt.toFixed(2)}</td></tr>`;
+        window.data.office.forEach(item => {
+            const amt = parseFloat(item.amount || item.total) || 0;
+            sum += amt;
+            tbody.innerHTML += `<tr><td>${item.date}</td><td>${item.desc || item.name}</td><td>৳${amt.toFixed(2)}</td></tr>`;
         });
     }
-    tbody.innerHTML += `<tr style="font-weight: bold; background: rgba(212, 175, 55, 0.1);"><td colspan="2" style="text-align: right; color: #D4AF37;">সর্বমোট:</td><td style="color: #D4AF37;">৳${total.toFixed(2)}</td></tr>`;
+    tbody.innerHTML += `<tr style="font-weight: bold; background: rgba(212, 175, 55, 0.1);"><td colspan="2" style="text-align: right; color: #D4AF37;">সর্বমোট:</td><td style="color: #D4AF37;">৳${sum.toFixed(2)}</td></tr>`;
 };
 
-window.renderLoans = function() {
-    const tbody = document.getElementById('loans-table-body');
-    if(!tbody) return;
-    tbody.innerHTML = '';
-    let total = 0;
-    if(window.data && window.data.loans) {
-        window.data.loans.forEach((item, index) => {
-            const amt = parseFloat(item.amount) || 0;
-            total += amt;
-            tbody.innerHTML += `<tr><td>${item.date}</td><td>${item.desc}</td><td>৳${amt.toFixed(2)}</td></tr>`;
-        });
-    }
-    tbody.innerHTML += `<tr style="font-weight: bold; background: rgba(212, 175, 55, 0.1);"><td colspan="2" style="text-align: right; color: #D4AF37;">মোট লোন:</td><td style="color: #D4AF37;">৳${total.toFixed(2)}</td></tr>`;
-};
-
-window.renderDebt = function() {
-    const tbody = document.getElementById('debt-table-body');
-    if(!tbody) return;
-    tbody.innerHTML = '';
-    let total = 0;
-    if(window.data && window.data.debt) {
-        window.data.debt.forEach((item, index) => {
-            const amt = parseFloat(item.amount) || 0;
-            total += amt;
-            tbody.innerHTML += `<tr><td>${item.date}</td><td>${item.desc}</td><td>৳${amt.toFixed(2)}</td></tr>`;
-        });
-    }
-    tbody.innerHTML += `<tr style="font-weight: bold; background: rgba(212, 175, 55, 0.1);"><td colspan="2" style="text-align: right; color: #D4AF37;">মোট ডেবট:</td><td style="color: #D4AF37;">৳${total.toFixed(2)}</td></tr>`;
-};
-
+// ৫. বিজনেস সেকশন রেন্ডার ও টোটাল
 window.renderBusiness = function() {
-    const tbody = document.getElementById('business-table-body');
+    const tbody = document.getElementById('business-table-body') || document.getElementById('b-table');
     if(!tbody) return;
     tbody.innerHTML = '';
-    let total = 0;
+    let sum = 0;
     if(window.data && window.data.business) {
-        window.data.business.forEach((item, index) => {
-            const amt = parseFloat(item.amount) || 0;
-            total += amt;
-            tbody.innerHTML += `<tr><td>${item.date}</td><td>${item.desc}</td><td>৳${amt.toFixed(2)}</td></tr>`;
+        window.data.business.forEach(obj => {
+            const q = parseFloat(obj.qty) || 1;
+            const p = parseFloat(obj.price || obj.amount) || 0;
+            const amt = obj.qty ? (q * p) : p;
+            sum += amt;
+            tbody.innerHTML += `<tr><td>${obj.item || obj.desc}<br><small>${obj.date}</small></td><td>${obj.qty || '-'}</td><td>৳${amt.toFixed(2)}</td></tr>`;
         });
     }
-    tbody.innerHTML += `<tr style="font-weight: bold; background: rgba(212, 175, 55, 0.1);"><td colspan="2" style="text-align: right; color: #D4AF37;">মোট বিজনেস:</td><td style="color: #D4AF37;">৳${total.toFixed(2)}</td></tr>`;
-    };
-    </script>
+    tbody.innerHTML += `<tr style="font-weight: bold; background: rgba(212, 175, 55, 0.1);"><td colspan="2" style="text-align: right; color: #D4AF37;">মোট:</td><td style="color: #D4AF37;">৳${sum.toFixed(2)}</td></tr>`;
+};
+
+// ৬. ডেবট (Debt) সেকশন রেন্ডার ও টোটাল
+window.renderDebt = function() {
+    const tbody = document.getElementById('debt-table-body') || document.getElementById('d-table');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    let sum = 0;
+    if(window.data && window.data.debt) {
+        window.data.debt.forEach(obj => {
+            const amt = parseFloat(obj.amount || obj.amt) || 0;
+            sum += amt;
+            tbody.innerHTML += `<tr><td>${obj.date}</td><td>${obj.desc || obj.name}</td><td>৳${amt.toFixed(2)}</td></tr>`;
+        });
+    }
+    tbody.innerHTML += `<tr style="font-weight: bold; background: rgba(212, 175, 55, 0.1);"><td colspan="2" style="text-align: right; color: #D4AF37;">মোট ডেবট:</td><td style="color: #D4AF37;">৳${sum.toFixed(2)}</td></tr>`;
+};
+
+// ৭. লোন (Loans) সেকশন রেন্ডার ও টোটাল
+window.renderLoans = function() {
+    const tbody = document.getElementById('loans-table-body') || document.getElementById('l-table');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    let sum = 0;
+    if(window.data && window.data.loans) {
+        window.data.loans.forEach(obj => {
+            const amt = parseFloat(obj.amount || obj.instAmt) || 0;
+            sum += amt;
+            tbody.innerHTML += `<tr><td>${obj.date}</td><td>${obj.desc || obj.name}</td><td>৳${amt.toFixed(2)}</td></tr>`;
+        });
+    }
+    tbody.innerHTML += `<tr style="font-weight: bold; background: rgba(212, 175, 55, 0.1);"><td colspan="2" style="text-align: right; color: #D4AF37;">মোট লোন:</td><td style="color: #D4AF37;">৳${sum.toFixed(2)}</td></tr>`;
+};
+</script>
 </body>
 </html>
